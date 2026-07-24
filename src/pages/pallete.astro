@@ -1,0 +1,2351 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Paleta" backHref="/picker">
+  <div class="pal-page">
+    <div class="pal-left">
+      <div id="pal-root"></div>
+      <div class="sec-section">
+        <button id="sec-btn" class="sec-btn">
+          <span id="sec-btn-dot" class="sec-dot"></span>
+          <span id="sec-btn-label" class="sec-btn-label">Secundario</span>
+          <svg class="sec-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="sec-panel" class="sec-dropdown hidden"></div>
+      </div>
+      <div class="pal-input-wrap">
+        <input id="color-input" type="color" value="#ff0000">
+        <input id="color-hex" type="text" value="#FF0000" maxlength="7">
+        <button id="generate-btn">Generar paleta</button>
+        <button id="export-btn" class="export-btn">Exportar paleta</button>
+      </div>
+    </div>
+    <div class="resizer" id="resizer"></div>
+    <div class="pal-right">
+      <div class="preview-toolbar">
+        <button id="dropdown-btn" class="dropdown-btn">
+          <span id="dropdown-title">Brasa</span>
+          <span id="dropdown-sub" class="dropdown-sub">Plantilla de restaurante</span>
+          <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="dropdown-panel" class="dropdown-panel hidden">
+          <div class="dropdown-option active" data-idx="0">
+            <span class="do-title">Brasa</span>
+            <span class="do-sub">Plantilla de restaurante</span>
+          </div>
+          <div class="dropdown-option" data-idx="1">
+            <span class="do-title">Surco</span>
+            <span class="do-sub">Plantilla de discos usados</span>
+          </div>
+          <div class="dropdown-option" data-idx="2">
+            <span class="do-title">Guardia</span>
+            <span class="do-sub">Plantilla de gestión de incidentes</span>
+          </div>
+          <div class="dropdown-option" data-idx="3">
+            <span class="do-title">Bitácora</span>
+            <span class="do-sub">Plantilla de blog</span>
+          </div>
+          <div class="dropdown-option" data-idx="4">
+            <span class="do-title">Índice</span>
+            <span class="do-sub">Plantilla de catalogación visual</span>
+          </div>
+          <div class="dropdown-option" data-idx="5">
+            <span class="do-title">Cauce</span>
+            <span class="do-sub">Plantilla de estados y errores</span>
+          </div>
+        </div>
+      </div>
+      <iframe id="preview-frame" class="preview-frame" sandbox="allow-scripts"></iframe>
+    </div>
+  </div>
+  <div id="export-overlay" class="export-overlay hidden">
+    <div class="export-modal">
+      <div class="export-head">
+        <button id="export-back" class="export-back hidden">←</button>
+        <span class="export-title">Exportar paleta</span>
+        <button id="export-close" class="export-close">✕</button>
+      </div>
+      <div id="export-grid" class="export-grid">
+        <button class="export-opt" data-fmt="css">
+          <svg class="export-opt-icon" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M9 10l-2 2 2 2M15 10l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="export-opt-title">CSS</span>
+          <span class="export-opt-sub">Variables nativas</span>
+        </button>
+        <button class="export-opt" data-fmt="tailwind">
+          <svg class="export-opt-icon" viewBox="0 0 24 24" fill="none"><path d="M12 4C7.5 4 5 7 5 9s2.5 4 5 4c-2 0-3.5 2-3.5 4s2 3 5 3c4.5 0 7-3 7-5s-2.5-4-5-4c2 0 3.5-2 3.5-4S15.5 4 12 4z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="export-opt-title">Tailwind</span>
+          <span class="export-opt-sub">Config</span>
+        </button>
+        <button class="export-opt" data-fmt="png">
+          <svg class="export-opt-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.5" cy="10.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5-4 4-3-3-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="export-opt-title">PNG</span>
+          <span class="export-opt-sub">Imagen de la paleta</span>
+        </button>
+        <button class="export-opt" data-fmt="prompt">
+          <svg class="export-opt-icon" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 9l5 5 5-5M12 4v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="export-opt-title">Prompt IA</span>
+          <span class="export-opt-sub">Para generar interfaces</span>
+        </button>
+      </div>
+      <div id="export-code" class="export-code hidden">
+        <pre id="export-pre"><code id="export-code-content"></code></pre>
+        <button id="export-copy" class="export-copy-btn">Copiar al portapapeles</button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function hx(r, g, b) {
+    return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  }
+
+  function parseHex(h) {
+    h = h.replace("#", "").trim();
+    if (!h) return null;
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length !== 6) return null;
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return { r, g, b };
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    let h = 0, s = 0, l = (mx + mn) / 2;
+    const d = mx - mn;
+    if (d !== 0) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+      else if (mx === g) h = ((b - r) / d + 2) * 60;
+      else h = ((r - g) / d + 4) * 60;
+    }
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+
+  function hslToRgb(h, s, l) {
+    s = Math.max(0, Math.min(100, s));
+    l = Math.max(0, Math.min(100, l));
+    s /= 100; l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = l - c / 2;
+    let r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    return {
+      r: Math.round((r + m) * 255),
+      g: Math.round((g + m) * 255),
+      b: Math.round((b + m) * 255),
+    };
+  }
+
+  function lighten(hex, amount) {
+    const p = parseHex(hex);
+    if (!p) return hex;
+    const hsl = rgbToHsl(p.r, p.g, p.b);
+    hsl.l = Math.min(97, hsl.l + amount);
+    const rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+    return hx(rgb.r, rgb.g, rgb.b);
+  }
+
+  function darken(hex, amount) {
+    const p = parseHex(hex);
+    if (!p) return hex;
+    const hsl = rgbToHsl(p.r, p.g, p.b);
+    hsl.l = Math.max(3, hsl.l - amount);
+    const rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+    return hx(rgb.r, rgb.g, rgb.b);
+  }
+
+  function toRgba(hex, a) {
+    const p = parseHex(hex);
+    if (!p) return hex;
+    return `rgba(${p.r},${p.g},${p.b},${a})`;
+  }
+
+  const ROLE_NAMES = ["Primario", "Secundario", "Info", "Advertencia", "Error", "Éxito"];
+
+  const suggLabels = {
+    30: "Análogo +30°", "-30": "Análogo −30°",
+    60: "Diada 60°",
+    120: "Triada 120°", 240: "Triada 240°",
+    150: "Comp. dividido 150°", 210: "Comp. dividido 210°",
+    180: "Complemento 180°",
+  };
+
+  const ROLES = [
+    { ho: null, hd: 0 },
+    { ho: null, hd: 120 },
+    { ho: 210,  hd: 0 },
+    { ho: 45,   hd: 0 },
+    { ho: 0,    hd: 0 },
+    { ho: 120,  hd: 0 },
+  ];
+
+  const OFFS = [45, 35, 25, 15, 5, -5, -15, -25, -35, -45];
+
+  function roleH(h, s, l, role) {
+    return { h: role.ho !== null ? role.ho : (h + role.hd) % 360, s, l };
+  }
+
+  function shades(bh, bs, bl) {
+    return OFFS.map((o) => {
+      let nl = Math.max(3, Math.min(97, Math.round(bl + o)));
+      let ns = bs;
+      if (o > 0) ns = Math.round(bs * (1 - (o / 50) * 0.55));
+      else if (o < 0) ns = Math.min(100, Math.round(bs * (1 + (Math.abs(o) / 50) * 0.25)));
+      return { o, h: bh, s: ns, l: nl };
+    });
+  }
+
+  function contrast(r, g, b) {
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#1a1a1a" : "#ffffff";
+  }
+
+  function getBaseColor(sh, role, offsetIdx) {
+    const shade = sh[offsetIdx];
+    const rh = roleH(shade.h, shade.s, shade.l, role);
+    const rgb = hslToRgb(rh.h, rh.s, rh.l);
+    return hx(rgb.r, rgb.g, rgb.b);
+  }
+
+  const TEMPLATES = [
+    {
+      name: "Brasa",
+      subtitle: "Plantilla de restaurante",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brasa — Asador de leña</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Caveat:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;background:var(--ash);color:var(--ink)}
+a{color:inherit}
+::selection{background:var(--ember);color:var(--ash)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+header.site{position:sticky;top:0;z-index:40;background:rgba(227,223,211,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.7rem;text-decoration:none;display:flex;align-items:center;gap:8px}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 3px rgba(178,58,30,0.15)}
+.nav-links{display:flex;gap:30px;list-style:none;margin:0;padding:0;font-size:0.9rem}
+.nav-links a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px}
+.nav-links a:hover{border-color:var(--ember)}
+.nav-cta{font-family:'JetBrains Mono',monospace;font-size:0.76rem;background:var(--ink);color:var(--ash);padding:10px 18px;text-decoration:none;border-radius:3px;transition:background .2s}
+.nav-cta:hover{background:var(--ember)}
+.hero{overflow:hidden;padding:90px 0 80px;border-bottom:1px solid var(--line);background:radial-gradient(ellipse at 15% 120%,rgba(226,103,46,0.22),transparent 55%),var(--ash)}
+.hero-top{display:flex;align-items:center;gap:12px;margin-bottom:26px;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--ink-soft)}
+.hero-top .flame{color:var(--ember)}
+h1.hero-title{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;font-size:clamp(3rem,7vw,5.6rem);line-height:0.98;letter-spacing:-0.01em;margin:0 0 28px;max-width:14ch}
+.hero-sub{font-size:1.1rem;line-height:1.6;color:var(--ink-soft);max-width:48ch;margin:0 0 34px}
+.hero-actions{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.btn-primary{font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:var(--ember);color:var(--ash);padding:14px 24px;text-decoration:none;border-radius:3px;transition:background .2s}
+.btn-primary:hover{background:var(--ember-glow)}
+.btn-ghost{font-size:0.92rem;text-decoration:underline;text-underline-offset:4px;color:var(--ink-soft)}
+.board{padding:20px 0 80px}
+.board-panel{background:var(--ink);color:var(--ash);border-radius:3px;padding:52px 56px;box-shadow:inset 0 0 60px rgba(0,0,0,0.35)}
+.board-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:34px;flex-wrap:wrap;gap:16px}
+.board-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.76rem;color:var(--ember-glow);letter-spacing:0.08em}
+.board-title{font-family:'Caveat',cursive;font-weight:600;font-size:2.4rem;margin:6px 0 0;color:var(--ash)}
+.board-date{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:rgba(227,223,211,0.55)}
+.board-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.board-item{display:grid;grid-template-columns:2.2fr 1fr 1fr;gap:20px;align-items:baseline;padding:18px 0;border-bottom:1px dashed rgba(227,223,211,0.22)}
+.board-item:last-child{border-bottom:none}
+.board-item .cut{font-family:'Caveat',cursive;font-weight:600;font-size:1.55rem;color:var(--ash)}
+.board-item .cut span.tag{font-family:'JetBrains Mono',monospace;font-size:0.66rem;letter-spacing:0.05em;color:var(--ember-glow);vertical-align:middle;margin-left:10px;border:1px solid rgba(226,103,46,0.5);padding:2px 7px;border-radius:999px}
+.board-item .weight,.board-item .price{font-family:'JetBrains Mono',monospace;font-size:0.86rem;color:rgba(227,223,211,0.75)}
+.board-item .price{text-align:right;color:var(--ember-glow)}
+.board-note{margin-top:28px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:rgba(227,223,211,0.45)}
+.philosophy{padding:30px 0 90px}
+.philosophy .wrap{display:grid;grid-template-columns:0.85fr 1.15fr;gap:64px;align-items:center}
+.wood-graphic{aspect-ratio:1/1}
+.wood-graphic svg{width:100%;height:100%;display:block}
+.phil-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--ember);letter-spacing:0.08em;margin-bottom:14px}
+h2.phil-title{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:clamp(1.9rem,3.4vw,2.6rem);margin:0 0 22px;line-height:1.12}
+.phil-text{color:var(--ink-soft);line-height:1.7;font-size:1.02rem;max-width:52ch;margin:0 0 16px}
+.phil-stats{display:flex;gap:44px;margin-top:32px}
+.phil-stat b{display:block;font-family:'Instrument Serif',serif;font-style:italic;font-size:2rem;color:var(--ember)}
+.phil-stat span{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-soft)}
+.menu{padding:30px 0 80px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--ember);letter-spacing:0.08em;margin-bottom:10px}
+h2.section-title{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:clamp(1.8rem,3vw,2.4rem);margin:0}
+.section-link{font-size:0.9rem;text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:2px;white-space:nowrap}
+.dish-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.dish-card{border:1px solid var(--line);border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.25)}
+.dish-media{aspect-ratio:4/3;background:var(--ash-2)}
+.dish-media svg{width:100%;height:100%;display:block}
+.dish-body{padding:22px 22px 26px}
+.dish-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:10px}
+h4.dish-title{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.35rem;margin:0}
+.dish-price{font-family:'JetBrains Mono',monospace;font-size:0.86rem;color:var(--ember);white-space:nowrap}
+.dish-desc{color:var(--ink-soft);font-size:0.92rem;line-height:1.5;margin:0}
+footer{border-top:1px solid var(--line);padding:44px 0 56px}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-links{display:flex;gap:26px;list-style:none;padding:0;margin:0;font-size:0.86rem}
+.foot-links a{text-decoration:none;color:var(--ink-soft)}
+.foot-fine{font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--ink-soft)}
+</style></head><body>
+<header class="site"><div class="nav"><a href="javascript:void(0)" class="brand"><span class="dot"></span>Brasa</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">Corte del día</a></li><li><a href="javascript:void(0)">Carta</a></li><li><a href="javascript:void(0)">Mesa larga</a></li><li><a href="javascript:void(0)">Ubicación</a></li></ul>
+<a href="javascript:void(0)" class="nav-cta">RESERVAR MESA →</a></div></header>
+<main>
+<section class="hero"><div class="wrap">
+<div class="hero-top"><span class="flame">●</span> LAS BRASAS SE ENCIENDEN A LAS 11:00</div>
+<h1 class="hero-title">Se cocina con lo que trae el mercado.</h1>
+<p class="hero-sub">Un asador de leña sin carta fija: cada mañana el asador decide el corte del día según lo que llega fresco.</p>
+<div class="hero-actions"><a href="javascript:void(0)" class="btn-primary">VER EL CORTE DE HOY</a><a href="javascript:void(0)" class="btn-ghost">Reservar mesa larga</a></div>
+</div></section>
+<section class="board"><div class="wrap"><div class="board-panel">
+<div class="board-head"><div><div class="board-eyebrow">SE ESCRIBE CADA MAÑANA</div><h2 class="board-title">Corte del día</h2></div><div class="board-date">MIÉRCOLES 23 JUL</div></div>
+<ul class="board-list">
+<li class="board-item"><span class="cut">Asado de tira<span class="tag">A LA BRASA</span></span><span class="weight">320 g aprox.</span><span class="price">$3.400 / 100g</span></li>
+<li class="board-item"><span class="cut">Entraña<span class="tag">ÚLTIMOS 6 KG</span></span><span class="weight">280 g aprox.</span><span class="price">$4.100 / 100g</span></li>
+<li class="board-item"><span class="cut">Vacío madurado 21 días</span><span class="weight">350 g aprox.</span><span class="price">$3.800 / 100g</span></li>
+<li class="board-item"><span class="cut">Verduras de estación<span class="tag">SIN CARNE</span></span><span class="weight">para compartir</span><span class="price">$6.500</span></li>
+</ul>
+<div class="board-note">El corte de hoy se sirve mientras dure.</div>
+</div></div></section>
+<section class="philosophy"><div class="wrap">
+<div class="wood-graphic"><svg viewBox="0 0 300 300"><rect rx="16" width="300" height="300" fill="var(--ash-2)"/><ellipse cx="150" cy="170" rx="90" ry="60" fill="var(--ink)" opacity="0.92"/><path d="M80 170 L220 170 L220 160 L80 160Z" fill="var(--ink)"/><ellipse cx="88" cy="170" rx="10" ry="30" fill="var(--ember)"/><ellipse cx="118" cy="165" rx="10" ry="28" fill="var(--ember-glow)"/><ellipse cx="148" cy="168" rx="10" ry="32" fill="var(--ember)"/><ellipse cx="178" cy="163" rx="10" ry="26" fill="var(--ember-glow)"/><ellipse cx="208" cy="170" rx="10" ry="30" fill="var(--ember)"/><line x1="80" y1="145" x2="220" y2="145" stroke="var(--brass)" stroke-width="3" stroke-linecap="round"/><line x1="85" y1="155" x2="215" y2="155" stroke="var(--brass)" stroke-width="2" stroke-linecap="round" opacity="0.6"/><rect x="140" y="230" width="20" height="30" rx="3" fill="var(--ink)"/><path d="M120 260 L180 260 L170 280 L130 280Z" fill="var(--ink)"/></svg></div>
+<div><div class="phil-eyebrow">CÓMO TRABAJAMOS</div>
+<h2 class="phil-title">El fuego manda, nosotros solo escuchamos.</h2>
+<p class="phil-text">No hay temperatura fija ni cronómetro. El asador lee las brasas de espino igual que se lee el clima: por el color, por el crujido, por cuánto tiempo llevan encendidas.</p>
+<p class="phil-text">Compramos lo que hay, no lo que se planificó hace un mes.</p>
+<div class="phil-stats"><div class="phil-stat"><b>4h</b><span>ENCENDIDO</span></div><div class="phil-stat"><b>1</b><span>CORTE POR DÍA</span></div><div class="phil-stat"><b>0</b><span>CARTAS IMPRESAS</span></div></div>
+</div></div></section>
+<section class="menu"><div class="wrap">
+<div class="section-head"><div><div class="section-eyebrow">SIEMPRE DISPONIBLE</div><h2 class="section-title">Lo que no cambia</h2></div><a href="javascript:void(0)" class="section-link">Ver entrada →</a></div>
+<div class="dish-grid">
+<article class="dish-card"><div class="dish-media"><svg viewBox="0 0 300 220"><rect width="300" height="220" fill="var(--ash-2)"/></svg></div><div class="dish-body"><div class="dish-row"><h4 class="dish-title">Pan de campo a la brasa</h4><span class="dish-price">$3.200</span></div><p class="dish-desc">Con manteca ahumada casera y sal de mar gruesa.</p></div></article>
+<article class="dish-card"><div class="dish-media"><svg viewBox="0 0 300 220"><rect width="300" height="220" fill="var(--ash-2)"/></svg></div><div class="dish-body"><div class="dish-row"><h4 class="dish-title">Provoleta al espino</h4><span class="dish-price">$7.900</span></div><p class="dish-desc">Curada 48 horas, orégano fresco de la huerta propia.</p></div></article>
+<article class="dish-card"><div class="dish-media"><svg viewBox="0 0 300 220"><rect width="300" height="220" fill="var(--ash-2)"/></svg></div><div class="dish-body"><div class="dish-row"><h4 class="dish-title">Flan de leche quemada</h4><span class="dish-price">$4.500</span></div><p class="dish-desc">Terminado con un soplete al pase, nunca antes.</p></div></article>
+</div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">© 2026 BRASA</div><ul class="foot-links"><li><a href="javascript:void(0)">Corte</a></li><li><a href="javascript:void(0)">Carta</a></li><li><a href="javascript:void(0)">Reservas</a></li></ul></div></footer>
+</body></html>`,
+      vars: [
+        { var: "--ember", color: "primary" },
+        { var: "--ember-glow", color: "primary", light: 15 },
+        { var: "--brass", color: "secondary" },
+        { var: "--ash", color: "bgLight" },
+        { var: "--ash-2", color: "bgLight", dark: 8 },
+        { var: "--ink", color: "textLight" },
+        { var: "--ink-soft", color: "textLight", light: 25 },
+        { var: "--line", color: "textLight", alpha: 0.16 },
+      ],
+      extras: [
+        ["rgba(227,223,211,0.92)", ["bgLight", 0.92]],
+        ["rgba(227,223,211,0.55)", ["bgLight", 0.55]],
+        ["rgba(227,223,211,0.45)", ["bgLight", 0.45]],
+        ["rgba(227,223,211,0.75)", ["bgLight", 0.75]],
+        ["rgba(227,223,211,0.22)", ["bgLight", 0.22]],
+        ["rgba(226,103,46,0.22)", ["primary", 0.22]],
+        ["rgba(226,103,46,0.5)", ["primary", 0.5]],
+        ["rgba(178,58,30,0.15)", ["primary", 0.15]],
+      ],
+    },
+    {
+      name: "Surco",
+      subtitle: "Plantilla de discos usados",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Surco — Discos usados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--label);color:var(--ink);font-family:'Work Sans',sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--wine);color:var(--cream-text)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.tonearm-rail{position:fixed;top:0;left:0;right:0;height:3px;background:var(--line-light);z-index:60}
+.tonearm-rail .fill{height:100%;width:0%;background:var(--wine)}
+.tonearm-dock{position:fixed;top:6px;right:0;width:0%;z-index:61;pointer-events:none}
+.tonearm-icon{position:absolute;right:-11px;top:-9px;width:22px;height:22px}
+header.site{position:sticky;top:3px;z-index:40;background:var(--vinyl);color:var(--cream-text);border-bottom:1px solid var(--line-dark)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:1.5rem;text-decoration:none;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px}
+.brand svg{width:24px;height:24px}
+.nav-links{display:flex;gap:30px;list-style:none;margin:0;padding:0;font-size:0.9rem}
+.nav-links a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px}
+.nav-links a:hover{border-color:var(--gold)}
+.nav-cta{font-family:'Space Mono',monospace;font-size:0.76rem;background:var(--gold);color:var(--vinyl);padding:10px 18px;text-decoration:none;border-radius:3px;transition:background .2s}
+.nav-cta:hover{background:var(--cream-text)}
+.hero{background:var(--vinyl);color:var(--cream-text);padding:96px 0 88px;position:relative;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.1fr 0.9fr;gap:64px;align-items:center;position:relative;z-index:2}
+.now-spinning{font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--gold);display:flex;align-items:center;gap:10px;margin-bottom:24px;letter-spacing:0.04em}
+.now-spinning::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+h1.hero-title{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(2.6rem,5.2vw,4.4rem);line-height:1.02;letter-spacing:-0.02em;margin:0 0 26px}
+h1.hero-title span{color:var(--gold)}
+.hero-sub{font-size:1.05rem;line-height:1.65;color:var(--cream-text);opacity:0.72;max-width:46ch;margin:0 0 32px}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap}
+.btn-primary{font-family:'Space Mono',monospace;font-size:0.82rem;background:var(--gold);color:var(--vinyl);padding:14px 24px;text-decoration:none;border-radius:3px;transition:background .2s}
+.btn-primary:hover{background:var(--cream-text)}
+.btn-ghost{font-size:0.92rem;text-decoration:underline;text-underline-offset:4px;color:var(--cream-text);opacity:0.72}
+.record-art{aspect-ratio:1/1;position:relative}
+.record-art svg{width:100%;height:100%;display:block;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+section.grading{padding:80px 0;background:var(--label)}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--wine);letter-spacing:0.06em;margin-bottom:10px}
+h2.section-title{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.7rem,3vw,2.3rem);margin:0;letter-spacing:-0.01em}
+.section-link{font-size:0.9rem;text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:2px;white-space:nowrap}
+.scale{border-top:2px solid var(--ink)}
+.scale-row{display:grid;grid-template-columns:120px 1fr 3fr;gap:24px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line-light)}
+.scale-code{font-family:'Space Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--wine)}
+.scale-name{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:1.05rem}
+.scale-desc{color:var(--ink-soft);font-size:0.94rem;line-height:1.5}
+section.arrivals{padding:20px 0 96px;background:var(--label)}
+.arrivals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.record-card{background:var(--label-2);border:1px solid var(--line-light);border-radius:3px;overflow:hidden}
+.sleeve{aspect-ratio:1/1;position:relative}
+.sleeve svg{width:100%;height:100%;display:block}
+.grade-badge{position:absolute;top:12px;right:12px;font-family:'Space Mono',monospace;font-size:0.7rem;font-weight:700;background:var(--vinyl);color:var(--gold);padding:4px 9px;border-radius:999px}
+.record-body{padding:20px}
+.record-genre{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--wine);letter-spacing:0.05em;margin-bottom:8px}
+h4.record-title{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:1.12rem;margin:0 0 4px;line-height:1.25}
+.record-artist{font-size:0.88rem;color:var(--ink-soft);margin:0 0 14px}
+.record-row{display:flex;justify-content:space-between;align-items:center}
+.record-price{font-family:'Space Mono',monospace;font-weight:700;font-size:0.98rem}
+.record-cta{font-size:0.82rem;text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:1px}
+section.listen{padding:0 0 96px;background:var(--label)}
+.listen-panel{background:var(--vinyl);color:var(--cream-text);border-radius:3px;padding:52px 56px;display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:center}
+.listen-copy .section-eyebrow{color:var(--gold)}
+.listen-copy h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.7rem,2.8vw,2.2rem);margin:10px 0 16px;line-height:1.15}
+.listen-copy p{color:var(--cream-text);opacity:0.7;line-height:1.6;max-width:42ch;margin:0}
+.player{background:rgba(244,237,221,0.06);border:1px solid var(--line-dark);border-radius:3px;padding:22px 24px}
+.player-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.play-btn{width:44px;height:44px;border-radius:50%;background:var(--gold);border:none;color:var(--vinyl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:transform .15s}
+.play-btn:hover{transform:scale(1.06)}
+.play-btn svg{width:16px;height:16px}
+.player-track{font-family:'Space Mono',monospace;font-size:0.82rem}
+.player-track b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:1rem;margin-bottom:2px}
+.waveform{display:flex;align-items:flex-end;gap:3px;height:44px;margin-bottom:8px}
+.waveform span{flex:1;background:var(--cream-text);opacity:0.28;border-radius:2px}
+.waveform span.played{opacity:1;background:var(--gold)}
+.player-time{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--cream-text);opacity:0.5}
+section.crates{padding:0 0 96px;background:var(--label)}
+.crate-tags{display:flex;flex-wrap:wrap;gap:12px}
+.crate-tag{font-family:'Space Mono',monospace;font-size:0.82rem;border:1px solid var(--line-light);padding:10px 18px;border-radius:999px;text-decoration:none;color:var(--ink-soft);transition:border-color .2s,color .2s,background .2s}
+.crate-tag:hover{border-color:var(--wine);color:var(--wine);background:rgba(122,46,61,0.06)}
+section.restock{padding:0 0 96px;background:var(--label)}
+.restock-panel{background:var(--wine);color:var(--cream-text);border-radius:3px;padding:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.restock-panel h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.5rem,2.6vw,2rem);margin:0 0 12px;line-height:1.2}
+.restock-panel p{color:var(--cream-text);opacity:0.78;line-height:1.6;margin:0;max-width:40ch}
+.form-row{display:flex;gap:0;border-bottom:1px solid var(--cream-text);opacity:0.4;padding-bottom:14px}
+.form-row input{flex:1;background:transparent;border:none;color:var(--cream-text);font-family:'Space Mono',monospace;font-size:0.92rem;padding:8px 0}
+.form-row input::placeholder{color:var(--cream-text);opacity:0.45}
+.form-row button{background:none;border:none;color:var(--gold);font-family:'Space Mono',monospace;font-size:0.82rem;cursor:pointer;padding:8px 0 8px 16px;white-space:nowrap}
+.form-note{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--cream-text);opacity:0.55;margin-top:14px}
+footer{border-top:1px solid var(--line-light);padding:44px 0 56px;background:var(--label)}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-links{display:flex;gap:26px;list-style:none;padding:0;margin:0;font-size:0.86rem}
+.foot-links a{text-decoration:none;color:var(--ink-soft)}
+.foot-links a:hover{color:var(--ink)}
+.foot-fine{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--ink-soft)}
+</style></head><body>
+<div class="tonearm-rail"><div class="fill" id="sf"></div></div>
+<div class="tonearm-dock" id="td"><svg class="tonearm-icon" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="6" r="3" fill="var(--gold)"/><path d="M18 9 L8 20" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="21" r="1.6" fill="var(--ink)"/></svg></div>
+<header class="site"><div class="nav">
+<a href="javascript:void(0)" class="brand"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--gold)" stroke-width="1.4"/><circle cx="12" cy="12" r="3.2" fill="var(--gold)"/></svg>Surco</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">Estados</a></li><li><a href="javascript:void(0)">Recién llegados</a></li><li><a href="javascript:void(0)">Escuchar</a></li><li><a href="javascript:void(0)">Cajas</a></li></ul>
+<a href="javascript:void(0)" class="nav-cta">ALERTA DE RESTOCK →</a></div></header>
+<main>
+<section class="hero"><div class="wrap">
+<div><div class="now-spinning">DIGGERS EN TIENDA AHORA: 4</div>
+<h1 class="hero-title">Cada disco tiene un <span>rasguño</span> con historia.</h1>
+<p class="hero-sub">Vinilos usados, revisados uno por uno y calificados sin inflar el estado.</p>
+<div class="hero-actions"><a href="javascript:void(0)" class="btn-primary">VER LA CAJA DE HOY</a><a href="javascript:void(0)" class="btn-ghost">Cómo calificamos el estado</a></div>
+</div>
+<div class="record-art" aria-hidden="true"><svg viewBox="0 0 300 300"><circle cx="150" cy="150" r="148" fill="var(--vinyl-2)"/><circle cx="150" cy="150" r="130" fill="none" stroke="var(--line-dark)" stroke-width="1"/><circle cx="150" cy="150" r="112" fill="none" stroke="var(--line-dark)" stroke-width="1"/><circle cx="150" cy="150" r="94" fill="none" stroke="var(--line-dark)" stroke-width="1"/><circle cx="150" cy="150" r="76" fill="none" stroke="var(--line-dark)" stroke-width="1"/><circle cx="150" cy="150" r="58" fill="var(--gold)"/><circle cx="150" cy="150" r="58" fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.2"/><circle cx="150" cy="150" r="6" fill="var(--ink)"/><path d="M105 150 A45 45 0 0 1 195 150" fill="none" stroke="var(--ink)" stroke-width="1.2" opacity="0.55"/><text x="150" y="132" text-anchor="middle" font-family="Space Mono" font-size="9" fill="var(--ink)" opacity="0.7">SURCO · LP</text></svg></div>
+</div></section>
+<section class="grading"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">ANTES DE COMPRAR</div><h2 class="section-title">Cómo calificamos el estado</h2></div></div>
+<div class="scale">
+<div class="scale-row"><div class="scale-code">M</div><div class="scale-name">Mint</div><div class="scale-desc">Como recién salido de fábrica.</div></div>
+<div class="scale-row"><div class="scale-code">NM</div><div class="scale-name">Near Mint</div><div class="scale-desc">Tocado pocas veces, sin marcas visibles bajo la luz.</div></div>
+<div class="scale-row"><div class="scale-code">VG+</div><div class="scale-name">Very Good Plus</div><div class="scale-desc">Rasguños superficiales que no afectan el sonido.</div></div>
+<div class="scale-row"><div class="scale-code">VG</div><div class="scale-name">Very Good</div><div class="scale-desc">Se nota que tuvo dueño. Puede tener un crujido leve.</div></div>
+<div class="scale-row"><div class="scale-code">G</div><div class="scale-name">Good</div><div class="scale-desc">Para coleccionistas de portada o piezas difíciles de encontrar.</div></div>
+</div></div></section>
+<section class="arrivals"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">CAJA DE ESTA SEMANA</div><h2 class="section-title">Recién llegados</h2></div><a href="javascript:void(0)" class="section-link">Ver los 86 discos de esta caja →</a></div>
+<div class="arrivals-grid">
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--wine)"/><circle cx="150" cy="150" r="70" fill="var(--label)" opacity="0.85"/><path d="M0 220 L300 180" stroke="var(--ink)" stroke-width="2" opacity="0.2"/></svg><span class="grade-badge">VG+</span></div><div class="record-body"><div class="record-genre">FOLK · 1978</div><h4 class="record-title">Señales del Sur</h4><p class="record-artist">Los Cráteres</p><div class="record-row"><span class="record-price">$9.900</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--wine)"/><rect x="60" y="60" width="180" height="180" fill="var(--label)" opacity="0.8"/><circle cx="150" cy="150" r="20" fill="var(--ink)"/></svg><span class="grade-badge">NM</span></div><div class="record-body"><div class="record-genre">JAZZ · 1984</div><h4 class="record-title">Cuarto Menguante</h4><p class="record-artist">Trío Alcaide</p><div class="record-row"><span class="record-price">$14.500</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--gold)"/><path d="M0 0 L300 300 M300 0 L0 300" stroke="var(--ink)" stroke-width="1" opacity="0.15"/><circle cx="150" cy="150" r="55" fill="var(--ink)"/></svg><span class="grade-badge">VG</span></div><div class="record-body"><div class="record-genre">CUMBIA · 1971</div><h4 class="record-title">La Costanera</h4><p class="record-artist">Combo Belén</p><div class="record-row"><span class="record-price">$8.200</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--vinyl-2)"/><circle cx="150" cy="150" r="90" fill="none" stroke="var(--label)" stroke-width="2" opacity="0.4"/><circle cx="150" cy="150" r="55" fill="none" stroke="var(--label)" stroke-width="2" opacity="0.4"/></svg><span class="grade-badge">VG+</span></div><div class="record-body"><div class="record-genre">ELECTRÓNICA · 1996</div><h4 class="record-title">Ruta 68</h4><p class="record-artist">Máquina Andina</p><div class="record-row"><span class="record-price">$11.000</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--gold)"/><rect x="0" y="200" width="300" height="100" fill="var(--ink)" opacity="0.3"/></svg><span class="grade-badge">NM</span></div><div class="record-body"><div class="record-genre">SOUL · 1971</div><h4 class="record-title">Cartas de Verano</h4><p class="record-artist">Marisol Reyes</p><div class="record-row"><span class="record-price">$13.200</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+<article class="record-card"><div class="sleeve"><svg viewBox="0 0 300 300"><rect width="300" height="300" fill="var(--wine)"/><circle cx="100" cy="100" r="40" fill="var(--label)" opacity="0.6"/><circle cx="210" cy="200" r="60" fill="var(--wine)" opacity="0.5"/></svg><span class="grade-badge">VG</span></div><div class="record-body"><div class="record-genre">ROCK · 1971</div><h4 class="record-title">Andén 3</h4><p class="record-artist">Fósforo</p><div class="record-row"><span class="record-price">$10.400</span><a href="javascript:void(0)" class="record-cta">Ver detalle</a></div></div></article>
+</div></div></section>
+<section class="listen"><div class="wrap"><div class="listen-panel"><div class="listen-copy"><div class="section-eyebrow">ESTACIÓN DE ESCUCHA</div><h2>Antes de comprar, lo escuchás en la tienda.</h2><p>Cada disco pasa por el tornamesa del mostrador. Si el corte no te convence, no hay drama.</p></div>
+<div class="player"><div class="player-top"><button class="play-btn" type="button" aria-label="Reproducir muestra"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8V4z"/></svg></button><div class="player-track"><b>Señales del Sur</b>Los Cráteres — Lado A, corte 2</div></div>
+<div class="waveform" aria-hidden="true"><span class="played" style="height:40%"></span><span class="played" style="height:65%"></span><span class="played" style="height:30%"></span><span class="played" style="height:80%"></span><span class="played" style="height:50%"></span><span style="height:70%"></span><span style="height:35%"></span><span style="height:55%"></span><span style="height:90%"></span><span style="height:40%"></span><span style="height:60%"></span><span style="height:25%"></span><span style="height:75%"></span><span style="height:45%"></span><span style="height:65%"></span></div>
+<div class="player-time"><span>1:12</span><span>3:48</span></div></div></div></div></section>
+<section class="crates"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">POR CAJA</div><h2 class="section-title">Buscar por género</h2></div></div>
+<div class="crate-tags"><a href="javascript:void(0)" class="crate-tag">Folk latinoamericano</a><a href="javascript:void(0)" class="crate-tag">Jazz</a><a href="javascript:void(0)" class="crate-tag">Cumbia y tropical</a><a href="javascript:void(0)" class="crate-tag">Soul</a><a href="javascript:void(0)" class="crate-tag">Rock setentero</a><a href="javascript:void(0)" class="crate-tag">Electrónica temprana</a><a href="javascript:void(0)" class="crate-tag">Bandas sonoras</a><a href="javascript:void(0)" class="crate-tag">Cajas de saldo</a></div></div></section>
+<section class="restock"><div class="wrap"><div class="restock-panel"><div><h2>Te avisamos cuando entra tu género.</h2><p>Sin catálogo genérico por correo. Elegís las cajas y avisamos solo cuando llega algo.</p></div>
+<div><div class="form-row"><input type="email" placeholder="tu@correo.com" aria-label="Correo"><button type="button">AVISARME →</button></div><div class="form-note">1 AVISO POR CAJA · CANCELÁS CUANDO QUIERAS</div></div></div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">© 2026 SURCO — DISCOS USADOS</div><ul class="foot-links"><li><a href="javascript:void(0)">Estados</a></li><li><a href="javascript:void(0)">Recién llegados</a></li><li><a href="javascript:void(0)">Cajas</a></li><li><a href="javascript:void(0)">Vender tu colección</a></li></ul></div></footer>
+<script>
+var sf=document.getElementById('sf'),td=document.getElementById('td');
+function ut(){var s=window.scrollY,d=document.documentElement.scrollHeight-window.innerHeight,p=d>0?(s/d)*100:0;sf.style.width=p+'%';td.style.width=p+'%'}
+window.addEventListener('scroll',ut,{passive:true});window.addEventListener('resize',ut);ut();
+<\/script>
+</body></html>`,
+      vars: [
+        { var: "--wine", color: "primary" },
+        { var: "--gold", color: "secondary" },
+        { var: "--label", color: "bgLight" },
+        { var: "--label-2", color: "bgLight", dark: 5 },
+        { var: "--ink", color: "textLight" },
+        { var: "--ink-soft", color: "textLight", light: 30 },
+        { var: "--vinyl", color: "bgDark" },
+        { var: "--vinyl-2", color: "bgDark", light: 6 },
+        { var: "--cream-text", color: "textDark" },
+        { var: "--line-dark", color: "textDark", alpha: 0.14 },
+        { var: "--line-light", color: "textLight", alpha: 0.14 },
+      ],
+      extras: [
+        ["rgba(122,46,61,0.06)", ["primary", 0.06]],
+        ["rgba(244,237,221,0.06)", ["textDark", 0.06]],
+        ["rgba(244,237,221,0.28)", ["textDark", 0.28]],
+        ["rgba(244,237,221,0.4)", ["textDark", 0.4]],
+        ["rgba(244,237,221,0.45)", ["textDark", 0.45]],
+        ["rgba(244,237,221,0.5)", ["textDark", 0.5]],
+        ["rgba(244,237,221,0.55)", ["textDark", 0.55]],
+        ["rgba(244,237,221,0.72)", ["textDark", 0.72]],
+        ["rgba(244,237,221,0.7)", ["textDark", 0.7]],
+        ["rgba(244,237,221,0.78)", ["textDark", 0.78]],
+        ["rgba(23,19,15,0.14)", ["textLight", 0.14]],
+        ["rgba(23,19,15,0.2)", ["textLight", 0.2]],
+        ["rgba(23,19,15,0.3)", ["textLight", 0.3]],
+        ["rgba(23,19,15,0.4)", ["textLight", 0.4]],
+        ["rgba(23,19,15,0.45)", ["textLight", 0.45]],
+        ["rgba(23,19,15,0.55)", ["textLight", 0.55]],
+        ["rgba(23,19,15,0.6)", ["textLight", 0.6]],
+        ["rgba(23,19,15,0.7)", ["textLight", 0.7]],
+        ["rgba(23,19,15,0.15)", ["textLight", 0.15]],
+      ],
+    },
+    {
+      name: "Guardia",
+      subtitle: "Plantilla de gestión de incidentes",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guardia — Gestión de guardias e incidentes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Manrope',sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
+header.site{position:sticky;top:0;z-index:40;background:rgba(241,239,232,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.3rem;text-decoration:none;display:flex;align-items:center;gap:9px}
+.brand svg{width:20px;height:20px}
+.status-pill{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--healthy);border:1px solid rgba(63,107,84,0.3);background:rgba(63,107,84,0.06);padding:6px 12px;border-radius:999px}
+.status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--healthy)}
+.nav-links{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:0.9rem}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--slate)}
+.nav-right{display:flex;align-items:center;gap:20px}
+.nav-cta{font-size:0.86rem;background:var(--ink);color:var(--paper);padding:10px 18px;text-decoration:none;border-radius:6px;transition:background .2s}
+.nav-cta:hover{background:var(--navy)}
+.hero{padding:88px 0 90px;border-bottom:1px solid var(--line)}
+.hero .wrap{display:grid;grid-template-columns:0.95fr 1.05fr;gap:60px;align-items:center}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--slate);letter-spacing:0.06em;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:16px;height:1px;background:var(--slate)}
+h1.hero-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(2.4rem,4.8vw,3.7rem);line-height:1.05;letter-spacing:-0.01em;margin:0 0 24px}
+.hero-sub{font-size:1.08rem;line-height:1.65;color:var(--slate);max-width:46ch;margin:0 0 32px}
+.hero-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.btn-primary{font-size:0.92rem;background:var(--ink);color:var(--paper);padding:14px 24px;text-decoration:none;border-radius:6px;transition:background .2s}
+.btn-primary:hover{background:var(--navy)}
+.btn-ghost{font-size:0.92rem;text-decoration:underline;text-underline-offset:4px;color:var(--slate)}
+.hero-note{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--slate)}
+.simulator{background:var(--navy);color:var(--cream-text);border-radius:6px;padding:26px 28px;min-height:380px;display:flex;flex-direction:column}
+.sim-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.sim-title{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--cream-text);opacity:0.55}
+.sim-btn{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;background:var(--signal);color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;transition:background .2s}
+.sim-btn:hover{background:var(--signal);filter:brightness(0.85)}
+.sim-btn:disabled{opacity:0.5;cursor:default}
+.sim-log{flex:1;display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;border-top:1px solid var(--cream-text);opacity:0.12;padding-top:16px}
+.sim-empty{color:var(--cream-text);opacity:0.4;font-size:0.82rem}
+.sim-line{display:flex;gap:12px;opacity:0;animation:appear .3s ease forwards}
+@keyframes appear{to{opacity:1}}
+.sim-line .t{color:var(--cream-text);opacity:0.4;flex:none;width:52px}
+.sim-line .msg b{color:var(--cream-text)}
+.sim-line.sev-p2 .msg{color:var(--signal)}
+.sim-line.sev-resolved .msg{color:var(--healthy)}
+section.severity{padding:84px 0}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--slate);letter-spacing:0.06em;margin-bottom:10px}
+h2.section-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(1.7rem,3vw,2.3rem);margin:0}
+.sev-table{border-top:2px solid var(--ink)}
+.sev-row{display:grid;grid-template-columns:90px 140px 1fr 140px;gap:20px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
+.sev-code{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1rem}
+.sev-code.p1{color:var(--signal)}
+.sev-name{font-weight:600}
+.sev-desc{color:var(--slate);font-size:0.94rem;line-height:1.5}
+.sev-target{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--slate);text-align:right}
+section.features{padding:0 0 96px}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.feature-card{background:var(--paper);padding:32px 28px}
+.feature-card svg{width:34px;height:34px;margin-bottom:20px}
+h4.feature-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.1rem;margin:0 0 10px}
+.feature-desc{color:var(--slate);font-size:0.92rem;line-height:1.55;margin:0}
+section.integrations{padding:0 0 96px}
+.integ-strip{display:flex;flex-wrap:wrap;gap:14px}
+.integ-chip{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:999px;padding:11px 18px;font-size:0.88rem;background:var(--panel)}
+.integ-dot{width:8px;height:8px;border-radius:2px;flex:none}
+section.proof{padding:0 0 96px}
+.proof-panel{background:var(--navy);color:var(--cream-text);border-radius:6px;padding:56px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.quote-mark{font-family:'Space Grotesk',sans-serif;font-size:3rem;color:var(--signal);line-height:1;margin-bottom:8px}
+.proof-quote{font-family:'Space Grotesk',sans-serif;font-size:1.35rem;line-height:1.4;margin:0 0 22px}
+.proof-person{color:var(--cream-text);opacity:0.6;font-size:0.9rem}
+.proof-stats{display:flex;flex-direction:column;gap:24px}
+.proof-stat b{display:block;font-family:'Space Grotesk',sans-serif;font-size:2.1rem;color:var(--signal)}
+.proof-stat span{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--cream-text);opacity:0.55}
+section.pricing{padding:0 0 96px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.plan{border:1px solid var(--line);border-radius:6px;padding:32px 28px;background:var(--panel);display:flex;flex-direction:column}
+.plan.featured{background:var(--navy);color:var(--cream-text);border-color:var(--navy);position:relative}
+.plan-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.15rem;margin-bottom:6px}
+.plan-tag{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--slate);margin-bottom:24px}
+.plan.featured .plan-tag{color:var(--cream-text);opacity:0.6}
+.plan-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:2.3rem;margin-bottom:4px}
+.plan-price span{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:400;color:var(--slate)}
+.plan.featured .plan-price span{color:var(--cream-text);opacity:0.6}
+.plan-cadence{font-size:0.82rem;color:var(--slate);margin-bottom:26px}
+.plan.featured .plan-cadence{color:var(--cream-text);opacity:0.6}
+.plan-features{list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:12px;font-size:0.9rem;flex:1}
+.plan-features li{display:flex;gap:10px;align-items:flex-start}
+.plan-cta{text-align:center;padding:12px;border-radius:6px;text-decoration:none;font-size:0.9rem;border:1px solid var(--ink)}
+.plan-cta:hover{background:var(--ink);color:var(--paper)}
+.plan.featured .plan-cta{background:var(--signal);border-color:var(--signal);color:#fff}
+.plan.featured .plan-cta:hover{filter:brightness(0.85)}
+.plan-badge{position:absolute;top:-11px;right:28px;background:var(--signal);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;padding:4px 10px;border-radius:999px}
+section.final-cta{padding:0 0 96px}
+.final-panel{border:1px solid var(--line);border-radius:6px;padding:60px;display:flex;justify-content:space-between;align-items:center;gap:40px;flex-wrap:wrap}
+.final-panel h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(1.6rem,2.8vw,2.1rem);margin:0;max-width:20ch}
+footer{border-top:1px solid var(--line);padding:44px 0 56px}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-links{display:flex;gap:26px;list-style:none;padding:0;margin:0;font-size:0.86rem}
+.foot-links a{text-decoration:none;color:var(--slate)}
+.foot-links a:hover{color:var(--ink)}
+.foot-fine{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--slate)}
+</style></head><body>
+<header class="site"><div class="nav">
+<a href="javascript:void(0)" class="brand"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="var(--ink)" stroke-width="1.6"/><path d="M8 12h3l1.5-4 2 8L16 12h2" stroke="var(--signal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Guardia</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">Severidad</a></li><li><a href="javascript:void(0)">Producto</a></li><li><a href="javascript:void(0)">Precios</a></li><li><a href="javascript:void(0)">Documentación</a></li></ul>
+<div class="nav-right"><span class="status-pill">TODOS LOS SISTEMAS OPERATIVOS</span><a href="javascript:void(0)" class="nav-cta">EMPEZAR GRATIS</a></div></div></header>
+<main>
+<section class="hero"><div class="wrap">
+<div><div class="eyebrow">GESTIÓN DE GUARDIAS E INCIDENTES</div>
+<h1 class="hero-title">Que la alarma suene una sola vez, para la persona correcta.</h1>
+<p class="hero-sub">Guardia arma tus turnos de on-call, escala automáticamente si nadie responde, y guarda cada incidente.</p>
+<div class="hero-actions"><a href="javascript:void(0)" class="btn-primary">EMPEZAR GRATIS</a><a href="javascript:void(0)" class="btn-ghost">Ver cómo funciona</a></div>
+<div class="hero-note">Sin tarjeta de crédito · Configurás tu primera guardia en 4 minutos</div></div>
+<div class="simulator"><div class="sim-head"><span class="sim-title">SIMULADOR DE ESCALAMIENTO</span><button class="sim-btn" id="sr">SIMULAR UNA ALERTA →</button></div>
+<div class="sim-log" id="sl"><div class="sim-empty" id="se">Sin incidentes activos. Apretá el botón para ver cómo escala una alerta real.</div></div></div></div></section>
+<section class="severity"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">CÓMO CLASIFICAMOS</div><h2 class="section-title">Cuatro niveles, un solo criterio: impacto real</h2></div></div>
+<div class="sev-table">
+<div class="sev-row"><div class="sev-code p1">P1</div><div class="sev-name">Crítico</div><div class="sev-desc">El servicio está caído para todos los usuarios. Escala inmediatamente, sin ventana de espera.</div><div class="sev-target">RESPUESTA &lt; 5 MIN</div></div>
+<div class="sev-row"><div class="sev-code">P2</div><div class="sev-name">Alto</div><div class="sev-desc">Una función clave falla o el rendimiento cae para una parte importante de usuarios.</div><div class="sev-target">RESPUESTA &lt; 15 MIN</div></div>
+<div class="sev-row"><div class="sev-code">P3</div><div class="sev-name">Moderado</div><div class="sev-desc">Algo anda mal pero hay una alternativa. No necesita despertar a nadie a las 3 AM.</div><div class="sev-target">RESPUESTA &lt; 2 H</div></div>
+<div class="sev-row"><div class="sev-code">P4</div><div class="sev-name">Bajo</div><div class="sev-desc">Un detalle cosmético o un warning que conviene revisar cuando haya tiempo.</div><div class="sev-target">RESPUESTA &lt; 1 DÍA</div></div>
+</div></div></section>
+<section class="features"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">EL PRODUCTO</div><h2 class="section-title">Todo lo que pasa entre la alerta y el resuelto</h2></div></div>
+<div class="feature-grid">
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="1.4"/><path d="M12 7v5l3 3" stroke="var(--signal)" stroke-width="1.6" stroke-linecap="round"/></svg><h4 class="feature-title">Turnos de guardia</h4><p class="feature-desc">Armá rotaciones semanales o por horario, con reemplazos de un clic.</p></div>
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h4l2-7 4 14 2-7h4" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h4 class="feature-title">Escalamiento automático</h4><p class="feature-desc">Si la persona de guardia no confirma, la alerta pasa sola al siguiente.</p></div>
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="var(--ink)" stroke-width="1.4"/><path d="M8 9h8M8 13h5" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg><h4 class="feature-title">Postmortems con datos reales</h4><p class="feature-desc">La línea de tiempo se arma sola con cada notificación y resolución.</p></div>
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="var(--ink)" stroke-width="1.4"/><circle cx="12" cy="12" r="9" stroke="var(--ink)" stroke-width="1.4"/></svg><h4 class="feature-title">Integraciones</h4><p class="feature-desc">Conectá tus herramientas sin escribir una sola línea de código.</p></div>
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round"/></svg><h4 class="feature-title">Reglas de silencio</h4><p class="feature-desc">Agrupá alertas repetidas y silenciá lo que no es urgente.</p></div>
+<div class="feature-card"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M12 19V5M20 19v-6" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/></svg><h4 class="feature-title">Métricas de guardia</h4><p class="feature-desc">MTTA y MTTR por persona y por equipo para saber si el proceso mejora.</p></div>
+</div></div></section>
+<section class="integrations"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">SE CONECTA CON</div><h2 class="section-title">Tu stack de monitoreo, sin fricción</h2></div></div>
+<div class="integ-strip">
+<span class="integ-chip"><span class="integ-dot" style="background:var(--healthy)"></span>Monitor de infraestructura</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--signal)"></span>Rastreo de errores</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--navy-2)"></span>Chat de equipo</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--slate)"></span>Gestión de tickets</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--healthy)"></span>CI / CD</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--signal)"></span>Métricas y logs</span>
+<span class="integ-chip"><span class="integ-dot" style="background:var(--navy-2)"></span>API abierta</span>
+</div></div></section>
+<section class="proof"><div class="wrap"><div class="proof-panel"><div><div class="quote-mark">"</div><p class="proof-quote">Bajamos el tiempo de respuesta a la mitad el primer mes, solo por dejar de depender de un chat grupal para saber quién estaba de guardia.</p><div class="proof-person">Constanza Rojas — Jefa de Plataforma, Nortec</div></div>
+<div class="proof-stats"><div class="proof-stat"><b>-48%</b><span>TIEMPO PROMEDIO DE RESPUESTA</span></div><div class="proof-stat"><b>340+</b><span>EQUIPOS DE INGENIERÍA ACTIVOS</span></div><div class="proof-stat"><b>99.95%</b><span>ENTREGA DE ALERTAS A TIEMPO</span></div></div></div></div></section>
+<section class="pricing"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">PRECIOS</div><h2 class="section-title">Un plan por cada tamaño de guardia</h2></div></div>
+<div class="pricing-grid">
+<div class="plan"><div class="plan-name">Starter</div><div class="plan-tag">PARA EQUIPOS CHICOS</div><div class="plan-price">$0<span> / mes</span></div><div class="plan-cadence">Hasta 5 personas en guardia</div><ul class="plan-features"><li>1 política de escalamiento</li><li>Notificaciones por correo y push</li><li>Historial de 30 días</li><li>2 integraciones</li></ul><a href="javascript:void(0)" class="plan-cta">Empezar gratis</a></div>
+<div class="plan featured"><span class="plan-badge">MÁS ELEGIDO</span><div class="plan-name">Equipo</div><div class="plan-tag">PARA INGENIERÍA EN CRECIMIENTO</div><div class="plan-price">$14<span> / persona / mes</span></div><div class="plan-cadence">Guardias ilimitadas</div><ul class="plan-features"><li>Políticas de escalamiento ilimitadas</li><li>Llamadas y SMS de respaldo</li><li>Historial y postmortems ilimitados</li><li>Integraciones ilimitadas</li><li>Métricas de MTTA / MTTR</li></ul><a href="javascript:void(0)" class="plan-cta">Probar 14 días gratis</a></div>
+<div class="plan"><div class="plan-name">Empresa</div><div class="plan-tag">PARA VARIAS ÁREAS Y REGIONES</div><div class="plan-price">A medida</div><div class="plan-cadence">Contrato anual con soporte dedicado</div><ul class="plan-features"><li>Todo lo del plan Equipo</li><li>SSO y control de accesos por rol</li><li>SLA de disponibilidad garantizado</li><li>Onboarding asistido</li></ul><a href="javascript:void(0)" class="plan-cta">Hablar con ventas</a></div>
+</div></div></section>
+<section class="final-cta"><div class="wrap"><div class="final-panel"><h2>Armá tu primera guardia antes de que termine el café.</h2><a href="javascript:void(0)" class="btn-primary">EMPEZAR GRATIS</a></div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">© 2026 GUARDIA — GESTIÓN DE GUARDIAS E INCIDENTES</div><ul class="foot-links"><li><a href="javascript:void(0)">Severidad</a></li><li><a href="javascript:void(0)">Producto</a></li><li><a href="javascript:void(0)">Precios</a></li><li><a href="javascript:void(0)">Estado del servicio</a></li></ul></div></footer>
+<script>
+var b=document.getElementById('sr'),l=document.getElementById('sl'),e=document.getElementById('se');
+var st=[
+{t:'00:00',h:'<b>P2 detectado</b> — latencia elevada en checkout',c:'sev-p2'},
+{t:'00:02',h:'Notificando a <b>Camila</b> (guardia primaria)'},
+{t:'00:05',h:'Sin respuesta en 3 min — escalando a <b>Tomás</b>'},
+{t:'00:06',h:'<b>Tomás</b> reconoce la alerta'},
+{t:'00:14',h:'<b>Resuelto</b> en 8 minutos totales',c:'sev-resolved'}
+];
+b.addEventListener('click',function(){b.disabled=true;b.textContent='SIMULANDO…';e.style.display='none';l.querySelectorAll('.sim-line').forEach(function(el){el.remove()});st.forEach(function(s,i){setTimeout(function(){var d=document.createElement('div');d.className='sim-line'+(s.c?' '+s.c:'');d.innerHTML='<span class="t">'+s.t+'</span><span class="msg">'+s.h+'</span>';l.appendChild(d);if(i===st.length-1){b.disabled=false;b.textContent='SIMULAR OTRA VEZ →'}},i*750)})});
+<\/script>
+</body></html>`,
+      vars: [
+        { var: "--signal", color: "primary" },
+        { var: "--signal-soft", color: "primary", alpha: 0.1 },
+        { var: "--healthy", color: "success" },
+        { var: "--navy", color: "bgDark" },
+        { var: "--navy-2", color: "bgDark", light: 8 },
+        { var: "--paper", color: "bgLight" },
+        { var: "--panel", color: "bgLight", dark: 3 },
+        { var: "--ink", color: "textLight" },
+        { var: "--slate", color: "textLight", light: 25 },
+        { var: "--line", color: "textLight", alpha: 0.13 },
+        { var: "--cream-text", color: "textDark" },
+      ],
+      extras: [
+        ["rgba(241,239,232,0.92)", ["bgLight", 0.92]],
+        ["rgba(63,107,84,0.3)", ["success", 0.3]],
+        ["rgba(63,107,84,0.06)", ["success", 0.06]],
+      ],
+    },
+    {
+      name: "Bitácora",
+      subtitle: "Plantilla de blog",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitácora — Notas desde la cubierta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,450;0,9..144,600;1,9..144,450&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;background:var(--paper);color:var(--ink)}
+::selection{background:var(--brass);color:var(--paper)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--marine);outline-offset:3px}
+header.site{position:sticky;top:0;z-index:40;background:rgba(231,226,212,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Fraunces',serif;font-weight:600;font-size:1.35rem;letter-spacing:0.02em;text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand-mark{width:22px;height:22px;flex:none}
+.nav-links{display:flex;gap:32px;list-style:none;margin:0;padding:0;font-size:0.92rem}
+.nav-links a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;transition:border-color .2s}
+.nav-links a:hover{border-color:var(--marine)}
+.nav-cta{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;border:1px solid var(--ink);padding:8px 16px;text-decoration:none;border-radius:2px;transition:background .2s,color .2s}
+.nav-cta:hover{background:var(--ink);color:var(--paper)}
+.hero{padding:96px 0 72px;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.15fr 0.85fr;gap:64px;align-items:end}
+.entry-tag{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--marine);letter-spacing:0.06em;display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.entry-tag::before{content:"";width:16px;height:1px;background:var(--marine)}
+h1.hero-title{font-family:'Fraunces',serif;font-weight:450;font-size:clamp(2.6rem,5.4vw,4.6rem);line-height:1.02;letter-spacing:-0.01em;margin:0 0 26px}
+h1.hero-title em{font-style:italic;font-weight:450;color:var(--marine-deep)}
+.hero-sub{font-size:1.08rem;line-height:1.6;color:var(--ink-soft);max-width:46ch;margin:0 0 30px}
+.hero-actions{display:flex;gap:16px;align-items:center}
+.btn-primary{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;background:var(--marine-deep);color:var(--paper);padding:13px 22px;text-decoration:none;border-radius:2px;transition:background .2s}
+.btn-primary:hover{background:var(--ink)}
+.btn-ghost{font-size:0.9rem;text-decoration:underline;text-underline-offset:4px;color:var(--ink-soft)}
+.chart{aspect-ratio:1/1.05;position:relative;background:radial-gradient(circle at 30% 28%,rgba(169,129,46,0.16),transparent 45%),var(--paper-2);border:1px solid var(--line);border-radius:2px}
+.chart svg{width:100%;height:100%;display:block}
+section{padding:80px 0}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--marine);letter-spacing:0.08em;margin-bottom:10px}
+h2.section-title{font-family:'Fraunces',serif;font-weight:450;font-size:clamp(1.7rem,3vw,2.3rem);margin:0}
+.section-link{font-size:0.9rem;text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:2px;white-space:nowrap}
+.featured{display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:center;border:1px solid var(--line);border-radius:2px;padding:8px;background:var(--paper-2)}
+.featured-media{aspect-ratio:4/3;border-radius:2px;overflow:hidden;background:var(--marine-deep)}
+.featured-media svg{width:100%;height:100%;display:block}
+.featured-body{padding:28px 36px 28px 0}
+.meta-row{display:flex;gap:18px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--ink-soft);margin-bottom:16px}
+.meta-row .coord{color:var(--marine)}
+h3.featured-title{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.12;margin:0 0 16px}
+.featured-excerpt{color:var(--ink-soft);line-height:1.65;margin:0 0 22px;max-width:52ch}
+.read-link{font-size:0.92rem;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.read-link .arrow{transition:transform .2s}
+.read-link:hover .arrow{transform:translateX(4px)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:36px}
+.card{border-top:1px solid var(--ink);padding-top:20px}
+.card-media{aspect-ratio:16/10;margin-bottom:18px;border-radius:2px;overflow:hidden;background:var(--paper-2)}
+.card-media svg{width:100%;height:100%;display:block}
+.card .meta-row{margin-bottom:12px}
+h4.card-title{font-family:'Fraunces',serif;font-weight:500;font-size:1.22rem;line-height:1.25;margin:0 0 10px}
+.card-excerpt{color:var(--ink-soft);font-size:0.94rem;line-height:1.55;margin:0}
+.topics{display:flex;flex-wrap:wrap;gap:12px}
+.topic{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;border:1px solid var(--line);padding:9px 16px;border-radius:999px;text-decoration:none;color:var(--ink-soft);transition:border-color .2s,color .2s}
+.topic:hover{border-color:var(--marine);color:var(--marine)}
+.correspondence{background:var(--marine-deep);color:var(--paper);border-radius:2px;padding:64px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.correspondence h2{font-family:'Fraunces',serif;font-weight:450;font-style:italic;font-size:clamp(1.6rem,2.8vw,2.2rem);margin:0 0 14px;line-height:1.15}
+.correspondence p{color:var(--paper);opacity:0.72;line-height:1.6;margin:0;max-width:44ch}
+.form-row{display:flex;gap:0;border-bottom:1px solid var(--paper);opacity:0.4;padding-bottom:14px}
+.form-row input{flex:1;background:transparent;border:none;color:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:0.95rem;padding:8px 0}
+.form-row input::placeholder{color:var(--paper);opacity:0.45}
+.form-row button{background:none;border:none;color:var(--brass);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;cursor:pointer;padding:8px 0 8px 16px;white-space:nowrap}
+.form-note{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--paper);opacity:0.5;margin-top:14px}
+footer{border-top:1px solid var(--line);padding:48px 0 60px}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-links{display:flex;gap:26px;list-style:none;padding:0;margin:0;font-size:0.86rem}
+.foot-links a{text-decoration:none;color:var(--ink-soft)}
+.foot-links a:hover{color:var(--ink)}
+.foot-fine{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink-soft)}
+</style></head><body>
+<header class="site"><div class="nav">
+<a href="javascript:void(0)" class="brand"><svg class="brand-mark" viewBox="0 0 24 24" fill="none"><path d="M12 2L12 15" stroke="var(--brass)" stroke-width="1.4"/><path d="M4 22C4 22 7 17 12 17C17 17 20 22 20 22" stroke="var(--ink)" stroke-width="1.4"/><circle cx="12" cy="6" r="2.5" stroke="var(--marine)" stroke-width="1.4"/></svg>Bitácora</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">Destacado</a></li><li><a href="javascript:void(0)">Archivo</a></li><li><a href="javascript:void(0)">Temas</a></li><li><a href="javascript:void(0)">Sobre mí</a></li></ul>
+<a href="javascript:void(0)" class="nav-cta">SUSCRIBIRSE →</a></div></header>
+<main>
+<section class="hero"><div class="wrap">
+<div><div class="entry-tag">ENTRADA N.º 214 — 23 JUL 2026, 41°19'S</div>
+<h1 class="hero-title">Notas desde<br>la <em>cubierta</em>.</h1>
+<p class="hero-sub">Un cuaderno de a bordo sobre tecnología, diseño y el oficio de pensar despacio en tiempos de ruido. Cada entrada es una coordenada: dónde estábamos parados cuando la idea apareció.</p>
+<div class="hero-actions"><a href="javascript:void(0)" class="btn-primary">LEER LA ÚLTIMA ENTRADA</a><a href="javascript:void(0)" class="btn-ghost">Ver el archivo completo</a></div>
+</div>
+<div class="chart" aria-hidden="true"><svg viewBox="0 0 400 420">
+<defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="var(--line)" stroke-width="1"/></pattern></defs>
+<rect width="400" height="420" fill="url(#g)"/>
+<path d="M20 340 C 90 300, 120 180, 190 190 S 300 90, 380 60" fill="none" stroke="var(--marine)" stroke-width="2"/>
+<path d="M20 340 C 90 300, 120 180, 190 190 S 300 90, 380 60" fill="none" stroke="var(--brass)" stroke-width="1" stroke-dasharray="2 6"/>
+<circle cx="20" cy="340" r="4" fill="var(--ink)"/>
+<circle cx="190" cy="190" r="4" fill="var(--brass)"/>
+<circle cx="380" cy="60" r="5" fill="var(--marine)"/>
+<text x="26" y="362" font-family="IBM Plex Mono" font-size="11" fill="var(--ink-soft)">INICIO</text>
+<text x="196" y="212" font-family="IBM Plex Mono" font-size="11" fill="var(--ink-soft)">GIRO</text>
+<text x="330" y="48" font-family="IBM Plex Mono" font-size="11" fill="var(--ink-soft)">HOY</text>
+</svg></div>
+</div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">DESTACADO</div><h2 class="section-title">La entrada de esta semana</h2></div></div>
+<div class="featured"><div class="featured-media"><svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="var(--marine-deep)"/><path d="M0 220 Q 100 180 200 210 T 400 190 V300 H0 Z" fill="var(--ink)" opacity="0.35"/><path d="M0 250 Q 120 210 220 240 T 400 230 V300 H0 Z" fill="var(--brass)" opacity="0.25"/><circle cx="330" cy="70" r="26" fill="var(--paper)" opacity="0.9"/></svg></div>
+<div class="featured-body"><div class="meta-row"><span class="coord">33°02'S, 71°33'O</span><span>·</span><span>9 min de lectura</span></div>
+<h3 class="featured-title">Diseñar como si el usuario pudiera ver las costuras</h3>
+<p class="featured-excerpt">Por qué las interfaces más honestas son las que no esconden su lógica interna — y qué podemos aprender de los instrumentos náuticos, hechos para leerse de un vistazo en medio de una tormenta.</p>
+<a href="javascript:void(0)" class="read-link">Leer la entrada completa <span class="arrow">→</span></a></div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">ARCHIVO</div><h2 class="section-title">Últimas entradas del cuaderno</h2></div><a href="javascript:void(0)" class="section-link">Ver las 214 entradas →</a></div>
+<div class="grid">
+<article class="card"><div class="card-media"><svg viewBox="0 0 300 190"><rect width="300" height="190" fill="var(--paper-2)"/><path d="M0 140 Q80 110 160 130 T300 120 V190 H0 Z" fill="var(--marine)" opacity="0.5"/></svg></div><div class="meta-row"><span class="coord">N.º 213</span><span>·</span><span>6 min</span></div><h4 class="card-title">El silencio como formato editorial</h4><p class="card-excerpt">Sobre el espacio en blanco como decisión de contenido, no de estilo.</p></article>
+<article class="card"><div class="card-media"><svg viewBox="0 0 300 190"><rect width="300" height="190" fill="var(--paper-2)"/><circle cx="230" cy="60" r="40" fill="var(--brass)" opacity="0.35"/></svg></div><div class="meta-row"><span class="coord">N.º 212</span><span>·</span><span>4 min</span></div><h4 class="card-title">Cuadernos de bitácora, hoy</h4><p class="card-excerpt">Lo que un formato de hace 300 años enseña sobre registrar el trabajo.</p></article>
+<article class="card"><div class="card-media"><svg viewBox="0 0 300 190"><rect width="300" height="190" fill="var(--paper-2)"/><path d="M0 60 L300 100" stroke="var(--ink)" stroke-width="2" opacity="0.4"/></svg></div><div class="meta-row"><span class="coord">N.º 211</span><span>·</span><span>11 min</span></div><h4 class="card-title">Contra la velocidad como virtud</h4><p class="card-excerpt">Un caso a favor de tomarse una semana más para pensar la idea.</p></article>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">TEMAS</div><h2 class="section-title">Explorar por rumbo</h2></div></div>
+<div class="topics"><a href="javascript:void(0)" class="topic">Diseño de producto</a><a href="javascript:void(0)" class="topic">Escritura</a><a href="javascript:void(0)" class="topic">Herramientas</a><a href="javascript:void(0)" class="topic">Trabajo profundo</a><a href="javascript:void(0)" class="topic">Tipografía</a><a href="javascript:void(0)" class="topic">Historia del oficio</a><a href="javascript:void(0)" class="topic">Notas breves</a></div></div></section>
+<section><div class="wrap"><div class="correspondence"><div><h2>Una entrada por semana, directo a tu correo.</h2><p>Sin ruido, sin relleno. Si alguna semana no tengo nada que valga la pena decir, simplemente no llega nada.</p></div>
+<div><div class="form-row"><input type="email" placeholder="tu@correo.com" aria-label="Correo"><button type="button">SUSCRIBIRME →</button></div><div class="form-note">SIN SPAM · CANCELÁS CUANDO QUIERAS · 1 CORREO/SEMANA</div></div></div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">© 2026 BITÁCORA — CUADERNO DE A BORDO</div><ul class="foot-links"><li><a href="javascript:void(0)">RSS</a></li><li><a href="javascript:void(0)">Sobre mí</a></li><li><a href="javascript:void(0)">Contacto</a></li><li><a href="javascript:void(0)">Archivo completo</a></li></ul></div></footer>
+</body></html>`,
+      vars: [
+        { var: "--paper", color: "bgLight" },
+        { var: "--paper-2", color: "bgLight", dark: 5 },
+        { var: "--ink", color: "textLight" },
+        { var: "--ink-soft", color: "textLight", light: 25 },
+        { var: "--marine", color: "primary" },
+        { var: "--marine-deep", color: "primary", dark: 8 },
+        { var: "--brass", color: "secondary" },
+        { var: "--line", color: "textLight", alpha: 0.16 },
+      ],
+      extras: [
+        ["rgba(231,226,212,0.92)", ["bgLight", 0.92]],
+        ["rgba(169,129,46,0.16)", ["secondary", 0.16]],
+      ],
+    },
+    {
+      name: "Índice",
+      subtitle: "Plantilla de catalogación visual",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Índice — Sistema de catalogación visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--wall);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--wall)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.framed{position:relative}
+.framed .corner{position:absolute;width:16px;height:16px;pointer-events:none;border-color:var(--ink);opacity:0;transition:opacity .25s}
+.framed:hover .corner,.framed.always .corner{opacity:1}
+.corner.tl{top:-1px;left:-1px;border-top:1.5px solid;border-left:1.5px solid}
+.corner.tr{top:-1px;right:-1px;border-top:1.5px solid;border-right:1.5px solid}
+.corner.bl{bottom:-1px;left:-1px;border-bottom:1.5px solid;border-left:1.5px solid}
+.corner.br{bottom:-1px;right:-1px;border-bottom:1.5px solid;border-right:1.5px solid}
+header.site{position:sticky;top:0;z-index:40;background:rgba(247,245,239,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Newsreader',serif;font-style:italic;font-weight:500;font-size:1.5rem;text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand svg{width:20px;height:20px}
+.nav-links{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:0.86rem;font-family:'IBM Plex Mono',monospace}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--ink-soft)}
+.intro{padding:80px 0 64px;border-bottom:1px solid var(--line)}
+.intro-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--ink-soft);letter-spacing:0.08em;margin-bottom:20px}
+h1.intro-title{font-family:'Newsreader',serif;font-weight:500;font-style:italic;font-size:clamp(2.2rem,4.6vw,3.6rem);line-height:1.08;margin:0 0 22px;max-width:18ch}
+.intro-sub{font-size:1.04rem;line-height:1.65;color:var(--ink-soft);max-width:60ch;margin:0}
+section{padding:80px 0;border-bottom:1px solid var(--line)}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--ink-soft);letter-spacing:0.08em;margin-bottom:10px}
+h2.section-title{font-family:'Newsreader',serif;font-weight:500;font-style:italic;font-size:clamp(1.6rem,2.8vw,2.1rem);margin:0}
+.section-note{font-size:0.88rem;color:var(--ink-soft);max-width:40ch;text-align:right}
+.palette-group{margin-bottom:36px}
+.palette-label{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);letter-spacing:0.06em;margin-bottom:14px}
+.swatch-row{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.swatch{padding:22px 18px;min-height:96px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:2px}
+.swatch .name{font-size:0.86rem;font-weight:600}
+.swatch .hex{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;opacity:0.75}
+.type-scale{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--ink)}
+.type-row{display:grid;grid-template-columns:140px 1fr;gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)}
+.type-tag{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink-soft)}
+.t-display{font-family:'Newsreader',serif;font-style:italic;font-weight:500;font-size:2.6rem}
+.t-h1{font-family:'Newsreader',serif;font-weight:500;font-size:2rem}
+.t-h2{font-family:'Newsreader',serif;font-weight:500;font-size:1.5rem}
+.t-body{font-family:'Inter',sans-serif;font-size:1rem;line-height:1.5;max-width:60ch}
+.t-caption{font-family:'Inter',sans-serif;font-size:0.82rem;color:var(--ink-soft)}
+.t-mono{font-family:'IBM Plex Mono',monospace;font-size:0.86rem}
+.ticket-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.ticket{border-radius:2px;padding:24px 24px 22px;border:1px solid;display:flex;flex-direction:column;gap:10px}
+.ticket.info{background:var(--info-bg);border-color:rgba(47,92,138,0.28)}
+.ticket.warning{background:var(--warning-bg);border-color:rgba(166,121,31,0.3)}
+.ticket.error{background:var(--error-bg);border-color:rgba(162,59,46,0.28)}
+.ticket.success{background:var(--success-bg);border-color:rgba(63,107,74,0.28)}
+.ticket-top{display:flex;justify-content:space-between;align-items:center}
+.ticket-code{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-soft)}
+.ticket-status{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:600;letter-spacing:0.04em;padding:3px 9px;border-radius:999px;color:#fff}
+.ticket.info .ticket-status{background:var(--info)}
+.ticket.warning .ticket-status{background:var(--warning)}
+.ticket.error .ticket-status{background:var(--error)}
+.ticket.success .ticket-status{background:var(--success)}
+.ticket-title{font-family:'Newsreader',serif;font-weight:500;font-size:1.15rem}
+.ticket-desc{font-size:0.9rem;color:var(--ink-soft);line-height:1.5;margin:0}
+.btn-showcase{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:13px 22px;border-radius:2px;text-decoration:none;transition:background .2s}
+.btn-primary{background:var(--ink);color:var(--wall);border:1px solid var(--ink)}
+.btn-primary:hover{background:var(--ink-soft)}
+.btn-secondary{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn-secondary:hover{background:var(--wall-2)}
+.btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid transparent;text-decoration:underline;text-underline-offset:4px;padding:13px 4px}
+.btn-disabled{background:var(--wall-2);color:var(--ink-soft);border:1px solid var(--line);opacity:0.6}
+.form-panel{background:var(--wall-2);border:1px solid var(--line);border-radius:2px;padding:40px}
+.form-panel-title{font-family:'Newsreader',serif;font-style:italic;font-weight:500;font-size:1.3rem;margin:0 0 6px}
+.form-panel-sub{font-size:0.88rem;color:var(--ink-soft);margin:0 0 28px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:8px}
+.field.full{grid-column:1 / -1}
+.field label{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);letter-spacing:0.04em}
+.field input,.field select,.field textarea{font-family:'Inter',sans-serif;font-size:0.94rem;background:var(--wall);border:1px solid var(--line);border-radius:2px;padding:11px 12px;color:var(--ink)}
+.field textarea{resize:vertical;min-height:80px}
+.check-row{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:24px}
+.check-item{display:flex;align-items:center;gap:9px;font-size:0.9rem}
+.check-item input{width:16px;height:16px;accent-color:var(--ink)}
+.badge-row{display:flex;flex-wrap:wrap;gap:12px}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--wall-2)}
+.badge.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:7px;background:var(--ink-soft);vertical-align:middle}
+.card-demo{display:grid;grid-template-columns:340px 1fr;gap:48px;align-items:flex-start}
+.art-card{width:100%}
+.art-media{aspect-ratio:4/5;padding:8px}
+.art-media svg{width:100%;height:100%;display:block}
+.art-meta{padding-top:16px}
+.art-title{font-family:'Newsreader',serif;font-style:italic;font-weight:500;font-size:1.3rem;margin:0 0 4px}
+.art-artist{font-size:0.92rem;color:var(--ink-soft);margin:0 0 12px}
+.art-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.art-accession{font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--ink-soft)}
+.anatomy-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:16px}
+.anatomy-list li{display:flex;gap:14px;font-size:0.92rem}
+.anatomy-list .tag{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);flex:none;width:120px;padding-top:2px}
+.progress-block{max-width:480px}
+.progress-label{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:0.76rem;color:var(--ink-soft);margin-bottom:10px}
+.progress-track{height:6px;background:var(--wall-2);border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;background:var(--warning);width:64%;border-radius:999px}
+footer{padding:44px 0 56px}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-fine{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink-soft)}
+.foot-links{display:flex;gap:26px;list-style:none;padding:0;margin:0;font-size:0.86rem;font-family:'IBM Plex Mono',monospace}
+.foot-links a{text-decoration:none;color:var(--ink-soft)}
+.foot-links a:hover{color:var(--ink)}
+</style></head><body>
+<header class="site"><div class="nav">
+<a href="javascript:void(0)" class="brand"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" stroke="var(--ink)" stroke-width="1.3"/><path d="M8 15l3-4 2 2.5L16 9l3 6" stroke="var(--warning)" stroke-width="1.3" stroke-linejoin="round"/></svg>Índice</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">PALETA</a></li><li><a href="javascript:void(0)">TIPOGRAFÍA</a></li><li><a href="javascript:void(0)">ESTADOS</a></li><li><a href="javascript:void(0)">FORMULARIO</a></li><li><a href="javascript:void(0)">FICHA</a></li></ul></div></header>
+<main>
+<section class="intro"><div class="wrap"><div class="intro-eyebrow">SISTEMA DE CATALOGACIÓN VISUAL · V.1</div>
+<h1 class="intro-title">Un solo lenguaje para catalogar cada pieza.</h1>
+<p class="intro-sub">Índice reúne los componentes visuales que usamos en el catálogo digital, las fichas de sala y el material de préstamo entre instituciones.</p></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">01 — FUNDAMENTOS</div><h2 class="section-title">Paleta</h2></div><div class="section-note">Los tonos de estado provienen del código de color usado en los informes de conservación de la colección.</div></div>
+<div class="palette-group"><div class="palette-label">BASE</div><div class="swatch-row">
+<div class="swatch" style="background:var(--wall);color:var(--ink);border:1px solid var(--line)"><div class="name">Muro</div><div class="hex">#F7F5EF</div></div>
+<div class="swatch" style="background:var(--wall-2);color:var(--ink)"><div class="name">Muro secundario</div><div class="hex">#EDEAE0</div></div>
+<div class="swatch" style="background:var(--ink);color:var(--wall)"><div class="name">Tinta</div><div class="hex">#171613</div></div>
+<div class="swatch" style="background:var(--ink-soft);color:var(--wall)"><div class="name">Tinta suave</div><div class="hex">#5A564C</div></div>
+</div></div>
+<div class="palette-group"><div class="palette-label">ESTADO DE CONSERVACIÓN</div><div class="swatch-row">
+<div class="swatch" style="background:var(--info);color:#fff"><div class="name">Info — en catalogación</div><div class="hex">#2F5C8A</div></div>
+<div class="swatch" style="background:var(--warning);color:#fff"><div class="name">Advertencia — restauración</div><div class="hex">#A6791F</div></div>
+<div class="swatch" style="background:var(--error);color:#fff"><div class="name">Error — retirada de sala</div><div class="hex">#A23B2E</div></div>
+<div class="swatch" style="background:var(--success);color:#fff"><div class="name">Éxito — adquirida</div><div class="hex">#3F6B4A</div></div>
+</div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">02 — FUNDAMENTOS</div><h2 class="section-title">Tipografía</h2></div><div class="section-note">Newsreader para títulos, Inter para texto, IBM Plex Mono para datos.</div></div>
+<div class="type-scale">
+<div class="type-row"><span class="type-tag">DISPLAY</span><span class="t-display">Naturaleza muerta</span></div>
+<div class="type-row"><span class="type-tag">H1</span><span class="t-h1">Sala 7 — Arte moderno</span></div>
+<div class="type-row"><span class="type-tag">H2</span><span class="t-h2">Adquisiciones recientes</span></div>
+<div class="type-row"><span class="type-tag">BODY</span><span class="t-body">Esta obra ingresó a la colección permanente en 1994, como parte de una donación privada.</span></div>
+<div class="type-row"><span class="type-tag">CAPTION</span><span class="t-caption">Óleo sobre tela, 114 × 89 cm</span></div>
+<div class="type-row"><span class="type-tag">MONO</span><span class="t-mono">N.º DE ACCESO 1994.0231</span></div>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">03 — COMPONENTES</div><h2 class="section-title">Estados de catalogación</h2></div><div class="section-note">Cada pieza tiene uno de estos cuatro estados visibles en su ficha.</div></div>
+<div class="ticket-grid">
+<div class="ticket info"><div class="ticket-top"><span class="ticket-code">FICHA 2026.0114</span><span class="ticket-status">INFO</span></div><div class="ticket-title">En catalogación</div><p class="ticket-desc">La pieza ingresó a bodega y está siendo fotografiada y medida.</p></div>
+<div class="ticket warning"><div class="ticket-top"><span class="ticket-code">FICHA 1988.0057</span><span class="ticket-status">ADVERTENCIA</span></div><div class="ticket-title">Requiere restauración</div><p class="ticket-desc">Craquelado visible en el tercio inferior. Programada para taller de conservación.</p></div>
+<div class="ticket error"><div class="ticket-top"><span class="ticket-code">FICHA 2003.0192</span><span class="ticket-status">ERROR</span></div><div class="ticket-title">Retirada de sala</div><p class="ticket-desc">Daño estructural en el marco detectado en la última ronda de inspección.</p></div>
+<div class="ticket success"><div class="ticket-top"><span class="ticket-code">FICHA 2026.0098</span><span class="ticket-status">ÉXITO</span></div><div class="ticket-title">Adquisición confirmada</div><p class="ticket-desc">Compra aprobada por el comité de colección. Lista para ingresar a inventario.</p></div>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">04 — COMPONENTES</div><h2 class="section-title">Acciones</h2></div></div>
+<div class="btn-showcase"><a href="javascript:void(0)" class="btn btn-primary">SOLICITAR PRÉSTAMO</a><a href="javascript:void(0)" class="btn btn-secondary">VER FICHA COMPLETA</a><a href="javascript:void(0)" class="btn btn-ghost">Descargar informe</a><span class="btn btn-disabled">NO DISPONIBLE</span></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">05 — COMPONENTES</div><h2 class="section-title">Formulario</h2></div><div class="section-note">Ejemplo real: solicitud de préstamo entre instituciones.</div></div>
+<div class="form-panel"><div class="form-panel-title">Solicitud de préstamo</div><p class="form-panel-sub">Completá los datos de la institución solicitante y el período de exhibición.</p>
+<div class="field-grid">
+<div class="field"><label>INSTITUCIÓN</label><input type="text" placeholder="Nombre de la institución"></div>
+<div class="field"><label>CONTACTO</label><input type="email" placeholder="nombre@institucion.org"></div>
+<div class="field"><label>OBRA</label><select><option>Naturaleza muerta, 1994.0231</option><option>Retrato sin título, 1988.0057</option></select></div>
+<div class="field"><label>PERÍODO</label><input type="text" placeholder="ej. marzo – junio 2027"></div>
+<div class="field full"><label>MOTIVO</label><textarea placeholder="Describa el contexto curatorial"></textarea></div>
+</div>
+<label class="check-item" style="margin-bottom:24px"><input type="checkbox"> Cuenta con sala climatizada</label><br>
+<a href="javascript:void(0)" class="btn btn-primary">ENVIAR SOLICITUD</a></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">06 — COMPONENTES</div><h2 class="section-title">Etiquetas</h2></div></div>
+<div class="badge-row">
+<span class="badge dot">Óleo sobre tela</span><span class="badge dot">Escultura</span><span class="badge dot">Fotografía</span><span class="badge dot">Técnica mixta</span>
+<span class="badge dot">Siglo XIX</span><span class="badge dot">Siglo XX</span><span class="badge dot">Colección permanente</span><span class="badge dot">En préstamo</span>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">07 — PATRÓN COMPUESTO</div><h2 class="section-title">Ficha de obra</h2></div><div class="section-note">Cómo se combinan los componentes en una ficha real de catálogo.</div></div>
+<div class="card-demo">
+<div class="art-card framed always"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+<div class="art-media" style="background:var(--wall-2)"><svg viewBox="0 0 300 375"><rect width="300" height="375" fill="var(--wall-2)"/><rect x="24" y="24" width="252" height="327" fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.15"/><circle cx="150" cy="150" r="60" fill="var(--warning)" opacity="0.55"/><path d="M40 300 Q150 220 260 300" fill="none" stroke="var(--info)" stroke-width="10" opacity="0.4"/><rect x="70" y="90" width="40" height="90" fill="var(--error)" opacity="0.35"/></svg></div>
+<div class="art-meta"><div class="art-title">Naturaleza muerta</div><p class="art-artist">Elena Bustos, 1961</p><div class="art-tags"><span class="badge dot">Óleo sobre tela</span><span class="badge">114 × 89 cm</span></div><div class="art-accession">N.º DE ACCESO 1994.0231</div></div></div>
+<ul class="anatomy-list"><li><span class="tag">IMAGEN</span><span>Marco con esquinas de referencia para señalar contenido enmarcado.</span></li><li><span class="tag">TÍTULO</span><span>Newsreader itálica, siempre en cursiva para diferenciar el nombre de la obra.</span></li><li><span class="tag">ETIQUETAS</span><span>Medio y dimensiones como badges para ser escaneables en listas largas.</span></li><li><span class="tag">ACCESO</span><span>Número de acceso en mono, como aparece en el registro físico de la colección.</span></li></ul></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">08 — COMPONENTES</div><h2 class="section-title">Progreso</h2></div></div>
+<div class="progress-block"><div class="progress-label"><span>RESTAURACIÓN — FICHA 1988.0057</span><span>64%</span></div><div class="progress-track"><div class="progress-fill"></div></div></div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">ÍNDICE — SISTEMA DE CATALOGACIÓN VISUAL, V.1</div><ul class="foot-links"><li><a href="javascript:void(0)">Paleta</a></li><li><a href="javascript:void(0)">Tipografía</a></li><li><a href="javascript:void(0)">Estados</a></li><li><a href="javascript:void(0)">Ficha</a></li></ul></div></footer>
+</body></html>`,
+      vars: [
+        { var: "--wall", color: "bgLight" },
+        { var: "--wall-2", color: "bgLight", dark: 4 },
+        { var: "--ink", color: "textLight" },
+        { var: "--ink-soft", color: "textLight", light: 25 },
+        { var: "--line", color: "textLight", alpha: 0.14 },
+        { var: "--info", color: "info" },
+        { var: "--info-bg", color: "info", alpha: 0.07 },
+        { var: "--warning", color: "warning" },
+        { var: "--warning-bg", color: "warning", alpha: 0.08 },
+        { var: "--error", color: "error" },
+        { var: "--error-bg", color: "error", alpha: 0.07 },
+        { var: "--success", color: "success" },
+        { var: "--success-bg", color: "success", alpha: 0.07 },
+      ],
+      extras: [
+        ["rgba(247,245,239,0.92)", ["bgLight", 0.92]],
+        ["rgba(47,92,138,0.28)", ["info", 0.28]],
+        ["rgba(166,121,31,0.3)", ["warning", 0.3]],
+        ["rgba(162,59,46,0.28)", ["error", 0.28]],
+        ["rgba(63,107,74,0.28)", ["success", 0.28]],
+      ],
+    },
+    {
+      name: "Cauce",
+      subtitle: "Plantilla de estados y errores",
+      html: `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cauce — Sistema de estados y errores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Public+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Public Sans',sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+header.site{position:sticky;top:0;z-index:40;background:rgba(237,239,240,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;max-width:1180px;margin:0 auto}
+.brand{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.4rem;text-decoration:none;display:flex;align-items:center;gap:9px}
+.brand svg{width:20px;height:20px}
+.nav-links{display:flex;gap:26px;list-style:none;margin:0;padding:0;font-size:0.84rem;font-family:'Roboto Mono',monospace}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--ink-soft)}
+.intro{padding:80px 0 64px;border-bottom:1px solid var(--line)}
+.intro-eyebrow{font-family:'Roboto Mono',monospace;font-size:0.76rem;color:var(--ink-soft);letter-spacing:0.06em;margin-bottom:20px}
+h1.intro-title{font-family:'Source Serif 4',serif;font-weight:500;font-size:clamp(2.1rem,4.4vw,3.3rem);line-height:1.1;margin:0 0 22px;max-width:20ch}
+.intro-sub{font-size:1.02rem;line-height:1.65;color:var(--ink-soft);max-width:62ch;margin:0}
+section{padding:76px 0;border-bottom:1px solid var(--line)}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;gap:24px;flex-wrap:wrap}
+.section-eyebrow{font-family:'Roboto Mono',monospace;font-size:0.74rem;color:var(--ink-soft);letter-spacing:0.06em;margin-bottom:10px}
+h2.section-title{font-family:'Source Serif 4',serif;font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);margin:0}
+.section-note{font-size:0.86rem;color:var(--ink-soft);max-width:38ch;text-align:right}
+.palette-group{margin-bottom:32px}
+.palette-label{font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-soft);letter-spacing:0.05em;margin-bottom:12px}
+.swatch-row{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.swatch{padding:22px 18px;min-height:92px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:3px}
+.swatch .name{font-size:0.84rem;font-weight:600}
+.swatch .hex{font-family:'Roboto Mono',monospace;font-size:0.72rem;opacity:0.8}
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.stamp-card{text-align:center;padding:36px 20px;border:1px solid var(--line);border-radius:3px;background:var(--paper-2)}
+.stamp{display:inline-flex;align-items:center;justify-content:center;border:3px solid;border-radius:6px;padding:12px 20px;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.92rem;letter-spacing:0.08em;transform:rotate(-6deg);position:relative}
+.stamp::after{content:"";position:absolute;inset:3px;border:1px solid;border-radius:4px;opacity:0.5}
+.stamp.approved{color:var(--success);border-color:var(--success)}
+.stamp.approved::after{border-color:var(--success)}
+.stamp.declined{color:var(--error);border-color:var(--error)}
+.stamp.declined::after{border-color:var(--error)}
+.stamp.pending{color:var(--warning);border-color:var(--warning)}
+.stamp.pending::after{border-color:var(--warning)}
+.stamp.review{color:var(--info);border-color:var(--info)}
+.stamp.review::after{border-color:var(--info)}
+.stamp-note{margin-top:18px;font-size:0.84rem;color:var(--ink-soft);line-height:1.5}
+.stamp-code{font-family:'Roboto Mono',monospace;font-size:0.7rem;color:var(--ink-soft);margin-top:8px}
+.banner{display:flex;gap:16px;align-items:flex-start;padding:18px 22px;border-radius:3px;border:1px solid;margin-bottom:14px}
+.banner:last-child{margin-bottom:0}
+.banner-icon{width:20px;height:20px;flex:none;margin-top:1px}
+.banner-body b{display:block;font-size:0.94rem;margin-bottom:3px}
+.banner-body p{margin:0;font-size:0.88rem;color:var(--ink-soft)}
+.banner.error{background:var(--error-bg);border-color:rgba(174,58,46,0.3)}
+.banner.error b{color:var(--error)}
+.banner.warning{background:var(--warning-bg);border-color:rgba(176,126,32,0.32)}
+.banner.warning b{color:var(--warning)}
+.banner.info{background:var(--info-bg);border-color:rgba(31,110,122,0.3)}
+.banner.info b{color:var(--info)}
+.banner.success{background:var(--success-bg);border-color:rgba(46,107,68,0.3)}
+.banner.success b{color:var(--success)}
+.form-panel{background:var(--paper-2);border:1px solid var(--line);border-radius:3px;padding:40px}
+.form-panel-title{font-family:'Source Serif 4',serif;font-weight:500;font-size:1.25rem;margin:0 0 6px}
+.form-panel-sub{font-size:0.86rem;color:var(--ink-soft);margin:0 0 26px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:6px}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:'Roboto Mono',monospace;font-size:0.7rem;color:var(--ink-soft);letter-spacing:0.04em}
+.field input{font-family:'Public Sans',sans-serif;font-size:0.94rem;background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:11px 12px;color:var(--ink)}
+.field.invalid input{border-color:var(--error);background:var(--error-bg)}
+.field.valid input{border-color:var(--success);background:var(--success-bg)}
+.field-error{font-family:'Roboto Mono',monospace;font-size:0.74rem;color:var(--error);display:flex;align-items:center;gap:6px}
+.field-error::before{content:"!";width:14px;height:14px;border-radius:50%;background:var(--error);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:0.62rem;flex:none}
+.field-hint{font-family:'Roboto Mono',monospace;font-size:0.74rem;color:var(--ink-soft)}
+.toast-demo-area{background:var(--paper-2);border:1px dashed var(--line);border-radius:3px;padding:44px;display:flex;flex-direction:column;align-items:center;gap:18px;min-height:180px;justify-content:center}
+.toast-demo-btn{font-family:'Roboto Mono',monospace;font-size:0.82rem;background:var(--ink);color:var(--paper);border:none;padding:13px 22px;border-radius:3px;cursor:pointer}
+.toast-demo-btn:hover{background:var(--ink-soft)}
+.toast-demo-hint{font-size:0.82rem;color:var(--ink-soft)}
+.toast-stack{position:fixed;bottom:24px;right:24px;z-index:70;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--ink);color:var(--paper);padding:14px 18px;border-radius:3px;font-size:0.88rem;display:flex;gap:12px;align-items:center;min-width:280px;box-shadow:0 8px 24px rgba(0,0,0,0.2);opacity:0;transform:translateY(8px);animation:toast-in .25s ease forwards}
+@keyframes toast-in{to{opacity:1;transform:translateY(0)}}
+.toast .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--error)}
+.toast b{font-weight:600}
+.block-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.block-card{border:1px solid var(--line);border-radius:3px;padding:36px;background:var(--paper-2);text-align:center}
+.block-card svg{width:40px;height:40px;margin:0 auto 18px}
+.block-title{font-family:'Source Serif 4',serif;font-weight:500;font-size:1.15rem;margin:0 0 8px}
+.block-desc{font-size:0.88rem;color:var(--ink-soft);line-height:1.55;margin:0 0 20px;max-width:36ch;margin-left:auto;margin-right:auto}
+.block-cta{font-family:'Roboto Mono',monospace;font-size:0.8rem;text-decoration:underline;text-underline-offset:3px}
+.modal-frame{background:var(--paper-2);border-radius:3px;padding:60px;display:flex;justify-content:center}
+.modal{background:var(--paper);border-radius:3px;padding:34px;max-width:420px;width:100%;box-shadow:0 20px 50px rgba(20,24,28,0.15);border:1px solid var(--line)}
+.modal-tag{font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--error);letter-spacing:0.06em;margin-bottom:10px}
+.modal-title{font-family:'Source Serif 4',serif;font-weight:500;font-size:1.3rem;margin:0 0 12px}
+.modal-body{font-size:0.92rem;color:var(--ink-soft);line-height:1.55;margin:0 0 26px}
+.modal-actions{display:flex;gap:12px}
+.modal-btn{flex:1;text-align:center;padding:12px;border-radius:3px;font-family:'Roboto Mono',monospace;font-size:0.8rem;cursor:pointer;text-decoration:none}
+.modal-btn.cancel{border:1px solid var(--line);color:var(--ink);background:var(--paper)}
+.modal-btn.confirm{border:1px solid var(--error);background:var(--error);color:var(--paper)}
+.receipt-wrap{display:flex;justify-content:center}
+.receipt{width:100%;max-width:340px;background:var(--paper);border:1px solid var(--line);padding:28px 26px 24px;font-family:'Roboto Mono',monospace;position:relative}
+.receipt::before{content:"";position:absolute;top:-1px;left:0;right:0;height:8px;background-image:radial-gradient(circle at 8px 4px,var(--paper-2) 4px,transparent 4.5px);background-size:16px 8px;background-repeat:repeat-x}
+.receipt-head{text-align:center;margin-bottom:18px;margin-top:10px}
+.receipt-row{display:flex;justify-content:space-between;font-size:0.78rem;padding:7px 0;border-bottom:1px dashed var(--line)}
+.receipt-row:last-child{border-bottom:none}
+.receipt-row.total{font-weight:700;font-size:0.86rem;padding-top:12px}
+.btn-showcase{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.btn{font-family:'Roboto Mono',monospace;font-size:0.8rem;padding:13px 22px;border-radius:3px;text-decoration:none;transition:background .2s}
+.btn-primary{background:var(--ink);color:var(--paper);border:1px solid var(--ink)}
+.btn-primary:hover{background:var(--ink-soft)}
+.btn-danger{background:var(--error);color:var(--paper);border:1px solid var(--error)}
+.btn-danger:hover{filter:brightness(0.85)}
+.btn-secondary{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn-disabled{background:var(--paper-2);color:var(--ink-soft);border:1px solid var(--line);opacity:0.6}
+footer{padding:44px 0 56px}
+.foot-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.foot-fine{font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-soft)}
+.foot-links{display:flex;gap:24px;list-style:none;padding:0;margin:0;font-size:0.84rem;font-family:'Roboto Mono',monospace}
+.foot-links a{text-decoration:none;color:var(--ink-soft)}
+.foot-links a:hover{color:var(--ink)}
+</style></head><body>
+<header class="site"><div class="nav">
+<a href="javascript:void(0)" class="brand"><svg viewBox="0 0 24 24" fill="none"><path d="M4 15c3-6 6-9 8-9s5 3 8 9" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/><path d="M4 15h16" stroke="var(--info)" stroke-width="1.6" stroke-linecap="round"/></svg>Cauce</a>
+<ul class="nav-links"><li><a href="javascript:void(0)">ESTADOS</a></li><li><a href="javascript:void(0)">ALERTAS</a></li><li><a href="javascript:void(0)">FORMULARIO</a></li><li><a href="javascript:void(0)">TOASTS</a></li><li><a href="javascript:void(0)">BLOQUEOS</a></li><li><a href="javascript:void(0)">MODAL</a></li></ul></div></header>
+<main>
+<section class="intro"><div class="wrap"><div class="intro-eyebrow">SISTEMA DE ESTADOS Y ERRORES · V.1</div>
+<h1 class="intro-title">Cuando algo falla, la persona necesita saber exactamente qué pasó.</h1>
+<p class="intro-sub">Este catálogo reúne todos los estados de error, advertencia y confirmación que usamos en Cauce.</p></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">01 — FUNDAMENTOS</div><h2 class="section-title">Paleta</h2></div><div class="section-note">Los tonos de estado se reservan exclusivamente para transacciones.</div></div>
+<div class="palette-group"><div class="palette-label">BASE</div><div class="swatch-row">
+<div class="swatch" style="background:var(--paper);color:var(--ink);border:1px solid var(--line)"><div class="name">Papel</div><div class="hex">#EDEFF0</div></div>
+<div class="swatch" style="background:var(--paper-2);color:var(--ink)"><div class="name">Papel secundario</div><div class="hex">#E2E5E6</div></div>
+<div class="swatch" style="background:var(--ink);color:var(--paper)"><div class="name">Tinta</div><div class="hex">#14181C</div></div>
+<div class="swatch" style="background:var(--ink-soft);color:var(--paper)"><div class="name">Tinta suave</div><div class="hex">#565D63</div></div>
+</div></div>
+<div class="palette-group"><div class="palette-label">ESTADO DE TRANSACCIÓN</div><div class="swatch-row">
+<div class="swatch" style="background:var(--info);color:var(--paper)"><div class="name">Info — en revisión</div><div class="hex">#1F6E7A</div></div>
+<div class="swatch" style="background:var(--warning);color:var(--paper)"><div class="name">Advertencia — pendiente</div><div class="hex">#B07E20</div></div>
+<div class="swatch" style="background:var(--error);color:var(--paper)"><div class="name">Error — rechazada</div><div class="hex">#AE3A2E</div></div>
+<div class="swatch" style="background:var(--success);color:var(--paper)"><div class="name">Éxito — aprobada</div><div class="hex">#2E6B44</div></div>
+</div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">02 — COMPONENTES</div><h2 class="section-title">Sellos de estado</h2></div><div class="section-note">El mismo sello que en una cartola impresa, ahora en la interfaz.</div></div>
+<div class="stamp-grid">
+<div class="stamp-card"><span class="stamp approved">APROBADA</span><p class="stamp-note">Fondos verificados y transferencia completada.</p><div class="stamp-code">COD. 00 — OK</div></div>
+<div class="stamp-card"><span class="stamp declined">RECHAZADA</span><p class="stamp-note">Fondos insuficientes al momento de procesar.</p><div class="stamp-code">COD. 51 — NSF</div></div>
+<div class="stamp-card"><span class="stamp pending">PENDIENTE</span><p class="stamp-note">Esperando confirmación del banco receptor.</p><div class="stamp-code">COD. 09 — HOLD</div></div>
+<div class="stamp-card"><span class="stamp review">EN REVISIÓN</span><p class="stamp-note">Monto inusual — retenida para control de fraude.</p><div class="stamp-code">COD. 21 — FRD</div></div>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">03 — COMPONENTES</div><h2 class="section-title">Alertas de página</h2></div><div class="section-note">Avisos que necesitan quedarse visibles mientras navegas.</div></div>
+<div class="banner error"><svg class="banner-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--error)" stroke-width="1.6"/><path d="M12 8v5M12 16h.01" stroke="var(--error)" stroke-width="1.8" stroke-linecap="round"/></svg><div class="banner-body"><b>Transferencia rechazada</b><p>No pudimos completar tu transferencia de $420.000 porque supera tu límite diario.</p></div></div>
+<div class="banner warning"><svg class="banner-icon" viewBox="0 0 24 24" fill="none"><path d="M12 4l9 16H3z" stroke="var(--warning)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17h.01" stroke="var(--warning)" stroke-width="1.8" stroke-linecap="round"/></svg><div class="banner-body"><b>Verificación de identidad pendiente</b><p>Tu cuenta tiene funciones limitadas hasta que confirmes tu identidad.</p></div></div>
+<div class="banner info"><svg class="banner-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--info)" stroke-width="1.6"/><path d="M12 11v5M12 8h.01" stroke="var(--info)" stroke-width="1.8" stroke-linecap="round"/></svg><div class="banner-body"><b>Mantenimiento programado</b><p>El servicio de transferencias estará limitado el sábado de 01:00 a 04:00.</p></div></div>
+<div class="banner success"><svg class="banner-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--success)" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="banner-body"><b>Cuenta verificada</b><p>Ya podés operar sin límites reducidos.</p></div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">04 — COMPONENTES</div><h2 class="section-title">Errores de formulario</h2></div><div class="section-note">Validación en línea, campo por campo.</div></div>
+<div class="form-panel"><div class="form-panel-title">Nueva transferencia</div><p class="form-panel-sub">Ejemplo con distintos estados de validación activos a la vez.</p>
+<div class="field-grid">
+<div class="field invalid"><label>NÚMERO DE TARJETA</label><input type="text" value="4521 88•• •••• 0012"><span class="field-error">El número de tarjeta no es válido</span></div>
+<div class="field invalid"><label>CVV</label><input type="text" value="12"><span class="field-error">Debe tener 3 dígitos</span></div>
+<div class="field valid"><label>MONTO</label><input type="text" value="$85.000"><span class="field-hint">Dentro de tu límite disponible</span></div>
+<div class="field invalid"><label>CUENTA DESTINO</label><input type="text" value="00123456789"><span class="field-error">No encontramos esta cuenta</span></div>
+</div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">05 — COMPONENTES</div><h2 class="section-title">Notificaciones flotantes</h2></div><div class="section-note">Para errores que interrumpen una acción en curso.</div></div>
+<div class="toast-demo-area"><button class="toast-demo-btn" id="tt">SIMULAR ERROR →</button><span class="toast-demo-hint">Aparece abajo a la derecha.</span></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">06 — COMPONENTES</div><h2 class="section-title">Estados de bloqueo y vacíos</h2></div><div class="section-note">Pantallas para cuando no hay nada que mostrar.</div></div>
+<div class="block-grid">
+<div class="block-card"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="1.5" stroke="var(--error)" stroke-width="1.5"/><path d="M8 10V7a4 4 0 018 0v3" stroke="var(--error)" stroke-width="1.5"/></svg><div class="block-title">Cuenta bloqueada</div><p class="block-desc">Detectamos actividad inusual y bloqueamos tu cuenta por seguridad.</p><a href="javascript:void(0)" class="block-cta">Contactar a soporte</a></div>
+<div class="block-card"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="1.5" stroke="var(--ink-soft)" stroke-width="1.5"/><path d="M8 12h8M8 15h5" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/></svg><div class="block-title">Sin movimientos este mes</div><p class="block-desc">Todavía no registrás transacciones en el período seleccionado.</p><a href="javascript:void(0)" class="block-cta">Cambiar rango de fechas</a></div>
+</div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">07 — COMPONENTES</div><h2 class="section-title">Confirmación destructiva</h2></div><div class="section-note">Para acciones que no se pueden deshacer.</div></div>
+<div class="modal-frame"><div class="modal"><div class="modal-tag">ACCIÓN IRREVERSIBLE</div><div class="modal-title">¿Cancelar esta transferencia?</div><p class="modal-body">Si la cancelás ahora, vas a tener que crearla de nuevo desde cero.</p><div class="modal-actions"><a href="javascript:void(0)" class="modal-btn cancel">VOLVER</a><a href="javascript:void(0)" class="modal-btn confirm">SÍ, CANCELAR</a></div></div></div></div></section>
+<section><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">08 — PATRÓN COMPUESTO</div><h2 class="section-title">Comprobante</h2></div><div class="section-note">Sello y datos combinados en un comprobante real.</div></div>
+<div class="receipt-wrap"><div class="receipt"><div class="receipt-head"><span class="stamp declined">RECHAZADA</span></div>
+<div class="receipt-row"><span>FECHA</span><span>23/07/2026 14:12</span></div>
+<div class="receipt-row"><span>ORIGEN</span><span>••• 4821</span></div>
+<div class="receipt-row"><span>DESTINO</span><span>••• 0012</span></div>
+<div class="receipt-row"><span>CÓDIGO</span><span>51 — NSF</span></div>
+<div class="receipt-row total"><span>MONTO</span><span>$420.000</span></div>
+</div></div></div></section>
+<section style="border-bottom:none"><div class="wrap"><div class="section-head"><div><div class="section-eyebrow">09 — COMPONENTES</div><h2 class="section-title">Acciones</h2></div></div>
+<div class="btn-showcase"><a href="javascript:void(0)" class="btn btn-primary">CONFIRMAR TRANSFERENCIA</a><a href="javascript:void(0)" class="btn btn-secondary">GUARDAR BORRADOR</a><a href="javascript:void(0)" class="btn btn-danger">CANCELAR TRANSFERENCIA</a><span class="btn btn-disabled">LÍMITE DIARIO ALCANZADO</span></div></div></section>
+</main>
+<footer><div class="wrap foot-row"><div class="foot-fine">CAUCE — SISTEMA DE ESTADOS Y ERRORES, V.1</div><ul class="foot-links"><li><a href="javascript:void(0)">Estados</a></li><li><a href="javascript:void(0)">Alertas</a></li><li><a href="javascript:void(0)">Formulario</a></li><li><a href="javascript:void(0)">Modal</a></li></ul></div></footer>
+<div class="toast-stack" id="ts"></div>
+<script>
+var tt=document.getElementById('tt'),ts=document.getElementById('ts');
+tt.addEventListener('click',function(){var d=document.createElement('div');d.className='toast error';d.innerHTML='<span class="dot"></span><span><b>Transferencia rechazada.</b> Verificá tu saldo e intentá de nuevo.</span>';ts.appendChild(d);setTimeout(function(){d.style.transition='opacity .3s,transform .3s';d.style.opacity='0';d.style.transform='translateY(8px)';setTimeout(function(){d.remove()},300)},4000)});
+<\/script>
+</body></html>`,
+      vars: [
+        { var: "--paper", color: "bgLight" },
+        { var: "--paper-2", color: "bgLight", dark: 4 },
+        { var: "--ink", color: "textLight" },
+        { var: "--ink-soft", color: "textLight", light: 25 },
+        { var: "--line", color: "textLight", alpha: 0.14 },
+        { var: "--info", color: "info" },
+        { var: "--info-bg", color: "info", alpha: 0.08 },
+        { var: "--warning", color: "warning" },
+        { var: "--warning-bg", color: "warning", alpha: 0.09 },
+        { var: "--error", color: "error" },
+        { var: "--error-bg", color: "error", alpha: 0.08 },
+        { var: "--success", color: "success" },
+        { var: "--success-bg", color: "success", alpha: 0.08 },
+      ],
+      extras: [
+        ["rgba(237,239,240,0.92)", ["bgLight", 0.92]],
+        ["rgba(174,58,46,0.3)", ["error", 0.3]],
+        ["rgba(176,126,32,0.32)", ["warning", 0.32]],
+        ["rgba(31,110,122,0.3)", ["info", 0.3]],
+        ["rgba(46,107,68,0.3)", ["success", 0.3]],
+      ],
+    },
+  ];
+
+  function resolveColor(base, roleColors, suggestions) {
+    if (base === "primary") return roleColors[0];
+    if (base === "secondary") return roleColors[1];
+    if (base === "info") return roleColors[2];
+    if (base === "warning") return roleColors[3];
+    if (base === "error") return roleColors[4];
+    if (base === "success") return roleColors[5];
+    if (base === "bgLight") return suggestions.bgLight;
+    if (base === "textLight") return suggestions.textLight;
+    if (base === "bgDark") return suggestions.bgDark;
+    if (base === "textDark") return suggestions.textDark;
+    return base;
+  }
+
+  function renderPreview(tplIdx, roleColors, suggestions) {
+    const tpl = TEMPLATES[tplIdx];
+    if (!tpl) return;
+    let html = tpl.html;
+    for (const rule of tpl.vars) {
+      let color = resolveColor(rule.color, roleColors, suggestions);
+      if (rule.light) color = lighten(color, rule.light);
+      if (rule.dark) color = darken(color, rule.dark);
+      if (rule.alpha !== undefined) color = toRgba(color, rule.alpha);
+      const pattern = "var(" + rule.var + ")";
+      while (html.includes(pattern)) {
+        html = html.replace(pattern, color);
+      }
+    }
+    if (tpl.extras) {
+      for (const [old, [base, alpha]] of tpl.extras) {
+        const c = resolveColor(base, roleColors, suggestions);
+        const val = toRgba(c, alpha);
+        html = html.split(old).join(val);
+      }
+    }
+    const frame = document.getElementById("preview-frame");
+    frame.srcdoc = html;
+  }
+
+  function build() {
+    const root = document.getElementById("pal-root");
+    const p = new URLSearchParams(location.search);
+    const hp = p.get("hex") || "ff0000";
+    const secOff = parseInt(p.get("s")) || 120;
+    ROLES[1].hd = secOff;
+
+    const parsed = parseHex("#" + hp);
+    if (!parsed) return;
+
+    const { r, g, b } = parsed;
+    const hsl = rgbToHsl(r, g, b);
+    const h = hsl.h, s = hsl.s, l = hsl.l;
+    const sh = shades(h, s, l);
+
+    const bgL = hslToRgb(h, Math.round(s * 0.2), 96);
+    const txL = { r: 26, g: 26, b: 26 };
+    const bgD = hslToRgb(h, Math.round(s * 0.3), 6);
+    const txD = { r: 245, g: 245, b: 245 };
+
+    const hexBgL = hx(bgL.r, bgL.g, bgL.b);
+    const hexTxL = hx(txL.r, txL.g, txL.b);
+    const hexBgD = hx(bgD.r, bgD.g, bgD.b);
+    const hexTxD = hx(txD.r, txD.g, txD.b);
+
+    const extras = [hexBgL, null, hexTxL, null, hexBgD, null, hexTxD, null, null, null];
+
+    let html = '<div class="p-container"><div class="p-grid">';
+    for (let ri = 0; ri < ROLE_NAMES.length; ri++) {
+      html += `<div class="p-label">${ROLE_NAMES[ri]}</div>`;
+    }
+    html += '<div class="p-label p-label-e">Base</div>';
+    for (let row = 0; row < OFFS.length; row++) {
+      const shade = sh[row];
+      for (const role of ROLES) {
+        const rh = roleH(shade.h, shade.s, shade.l, role);
+        const rgb = hslToRgb(rh.h, rh.s, rh.l);
+        const c = hx(rgb.r, rgb.g, rgb.b);
+        html += `<div class="p-cell" style="background:${c};color:${contrast(rgb.r,rgb.g,rgb.b)}">${c.toUpperCase()}</div>`;
+      }
+      const ex = extras[row];
+      if (ex) {
+        const er = parseHex(ex);
+        html += `<div class="p-cell" style="background:${ex};color:${contrast(er.r,er.g,er.b)}">${ex.toUpperCase()}</div>`;
+      } else {
+        html += `<div class="p-cell p-empty"></div>`;
+      }
+    }
+    html += '</div></div>';
+    root.innerHTML = html;
+
+    const roleColors = [
+      getBaseColor(sh, ROLES[0], 4),
+      getBaseColor(sh, ROLES[1], 4),
+      getBaseColor(sh, ROLES[2], 4),
+      getBaseColor(sh, ROLES[3], 4),
+      getBaseColor(sh, ROLES[4], 4),
+      getBaseColor(sh, ROLES[5], 4),
+    ];
+
+    const suggestions = {
+      bgLight: hexBgL,
+      textLight: hexTxL,
+      bgDark: hexBgD,
+      textDark: hexTxD,
+    };
+
+    const btn = document.getElementById("dropdown-btn");
+    const panel = document.getElementById("dropdown-panel");
+    const title = document.getElementById("dropdown-title");
+    const sub = document.getElementById("dropdown-sub");
+
+    const savedIdx = parseInt(localStorage.getItem("palTemplateIdx")) || 0;
+    const tpl = TEMPLATES[savedIdx];
+    if (tpl) {
+      title.textContent = tpl.name;
+      sub.textContent = tpl.subtitle;
+      panel.querySelectorAll(".dropdown-option").forEach((o) => o.classList.remove("active"));
+      const activeOpt = panel.querySelector(`.dropdown-option[data-idx="${savedIdx}"]`);
+      if (activeOpt) activeOpt.classList.add("active");
+    }
+    renderPreview(savedIdx, roleColors, suggestions);
+
+    btn._roleColors = roleColors;
+    btn._suggestions = suggestions;
+
+    const secPanel = document.getElementById("sec-panel");
+    const secBtnDot = document.getElementById("sec-btn-dot");
+    const secBtnLabel = document.getElementById("sec-btn-label");
+    if (secPanel) {
+      const secColor = roleColors[1];
+      if (secBtnDot) secBtnDot.style.background = secColor;
+      const offName = suggLabels[secOff] || secOff + "°";
+      if (secBtnLabel) secBtnLabel.textContent = offName;
+
+      const suggs = [
+        { off: 30, label: "Análogo +30°" },
+        { off: -30, label: "Análogo −30°" },
+        { off: 60, label: "Diada 60°" },
+        { off: 120, label: "Triada 120°" },
+        { off: 240, label: "Triada 240°" },
+        { off: 150, label: "Comp. dividido 150°" },
+        { off: 210, label: "Comp. dividido 210°" },
+        { off: 180, label: "Complemento 180°" },
+      ];
+      let sh = "";
+      for (const sg of suggs) {
+        const off = sg.off;
+        const targetH = (h + off + 360) % 360;
+        const rgb = hslToRgb(targetH, s, l);
+        const c = hx(rgb.r, rgb.g, rgb.b);
+        const active = off === secOff ? " active" : "";
+        sh += `<button class="sec-sug${active}" data-off="${off}"><span class="ss-dot" style="background:${c}"></span><span class="ss-lbl">${sg.label}</span></button>`;
+      }
+      secPanel.innerHTML = sh;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const lastNav = localStorage.getItem("palLastNav");
+    const backBtn = document.querySelector(".back-btn");
+    if (lastNav && backBtn) {
+      backBtn.href = "/" + lastNav;
+    }
+
+    build();
+
+    const colorPicker = document.getElementById("color-input");
+    const colorHex = document.getElementById("color-hex");
+    const genBtn = document.getElementById("generate-btn");
+    const defaultHex = new URLSearchParams(location.search).get("hex") || "ff0000";
+    colorPicker.value = "#" + defaultHex;
+    colorHex.value = "#" + defaultHex.toUpperCase();
+
+    function getClean() {
+      return colorHex.value.replace("#", "").toLowerCase();
+    }
+
+    colorPicker.addEventListener("input", () => {
+      colorHex.value = colorPicker.value.toUpperCase();
+    });
+
+    colorHex.addEventListener("change", () => {
+      const v = colorHex.value.trim();
+      if (/^#[0-9a-f]{6}$/i.test(v)) colorPicker.value = v.toLowerCase();
+    });
+
+    genBtn.addEventListener("click", () => {
+      const s = new URLSearchParams(location.search).get("s") || 120;
+      location.search = "?hex=" + getClean() + "&s=" + s;
+    });
+
+    const exportBtn = document.getElementById("export-btn");
+    const exportOverlay = document.getElementById("export-overlay");
+    const exportClose = document.getElementById("export-close");
+    const exportBack = document.getElementById("export-back");
+    const exportGrid = document.getElementById("export-grid");
+    const exportCode = document.getElementById("export-code");
+    const exportPre = document.getElementById("export-pre");
+    const exportCodeContent = document.getElementById("export-code-content");
+    const exportCopy = document.getElementById("export-copy");
+
+    function closeExport() { exportOverlay.classList.add("hidden"); }
+
+    function showCode(content, lang) {
+      exportGrid.classList.add("hidden");
+      exportCode.classList.remove("hidden");
+      exportBack.classList.remove("hidden");
+      exportCodeContent.textContent = content;
+      exportPre.className = lang || "";
+    }
+
+    exportBtn.addEventListener("click", () => {
+      exportGrid.classList.remove("hidden");
+      exportCode.classList.add("hidden");
+      exportBack.classList.add("hidden");
+      exportOverlay.classList.remove("hidden");
+    });
+
+    exportClose.addEventListener("click", closeExport);
+    exportBack.addEventListener("click", () => {
+      exportGrid.classList.remove("hidden");
+      exportCode.classList.add("hidden");
+      exportBack.classList.add("hidden");
+    });
+
+    exportOverlay.addEventListener("click", (e) => { if (e.target === exportOverlay) closeExport(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !exportOverlay.classList.contains("hidden")) closeExport();
+    });
+
+    exportCopy.addEventListener("click", () => {
+      navigator.clipboard.writeText(exportCodeContent.textContent).then(() => {
+        exportCopy.textContent = "¡Copiado!";
+        setTimeout(() => { exportCopy.textContent = "Copiar al portapapeles"; }, 2000);
+      });
+    });
+
+    function getExportCells() {
+      const root = document.getElementById("pal-root");
+      const grid = root.querySelector(".p-grid");
+      if (!grid) return [];
+      return [...grid.querySelectorAll(".p-cell:not(.p-empty)")];
+    }
+
+    function getExportLabels() {
+      const root = document.getElementById("pal-root");
+      const grid = root.querySelector(".p-grid");
+      if (!grid) return [];
+      return [...grid.querySelectorAll(".p-label")];
+    }
+
+    exportOverlay.addEventListener("click", (e) => {
+      const opt = e.target.closest(".export-opt");
+      if (!opt) return;
+      const fmt = opt.dataset.fmt;
+      const labels = getExportLabels();
+      const cells = getExportCells();
+
+      if (fmt === "png") {
+        const swatchW = 110, swatchH = 50, cols = 7, gap = 3, pad = 14;
+        const totalW = cols * swatchW + (cols - 1) * gap + pad * 2;
+        const rows = Math.ceil(cells.length / cols);
+        const totalH = rows * swatchH + (rows - 1) * gap + pad * 2;
+        const cnv = document.createElement("canvas");
+        cnv.width = totalW; cnv.height = totalH;
+        const ctx = cnv.getContext("2d");
+        ctx.fillStyle = "#1a1a1e"; ctx.fillRect(0, 0, totalW, totalH);
+        cells.forEach((el, i) => {
+          const col = i % cols, row = Math.floor(i / cols);
+          const x = pad + col * (swatchW + gap), y = pad + row * (swatchH + gap);
+          const hex = "#" + el.textContent.trim().replace("#", "");
+          ctx.fillStyle = hex; ctx.fillRect(x, y, swatchW, swatchH);
+          ctx.fillStyle = getComputedStyle(el).color;
+          ctx.font = "bold 10px Inter, sans-serif";
+          ctx.fillText(hex.toUpperCase(), x + 5, y + 13);
+        });
+        const a = document.createElement("a");
+        a.download = "palette.png"; a.href = cnv.toDataURL(); a.click();
+        closeExport();
+        return;
+      }
+
+      if (fmt === "css") {
+        const names = labels.map((l) => l.textContent.trim().toLowerCase().replace(/[^a-z0-9]/g, "-"));
+        const lines = [":root {"];
+        cells.forEach((el, i) => {
+          const hex = el.textContent.trim().toLowerCase();
+          if (!hex) return;
+          const col = i % 7;
+          const row = Math.floor(i / 7);
+          const role = names[col] || "color";
+          const shade = ((row + 1) * 100).toString();
+          lines.push(`  --${role}-${shade}: ${hex};`);
+        });
+        lines.push("}");
+        showCode(lines.join("\n"), "language-css");
+        return;
+      }
+
+      if (fmt === "tailwind") {
+        const roleNames = labels.map((l) => l.textContent.trim().toLowerCase().replace(/[^a-z0-9]/g, "-"));
+        const colors = {};
+        cells.forEach((el, i) => {
+          const col = i % 7, row = Math.floor(i / 7);
+          const name = roleNames[col] || "c" + col;
+          if (!colors[name]) colors[name] = {};
+          colors[name][Math.min((row + 1) * 100, 900)] = el.textContent.trim().toLowerCase();
+        });
+        showCode(JSON.stringify({ theme: { extend: { colors } } }, null, 2), "language-json");
+        return;
+      }
+
+      if (fmt === "prompt") {
+        const roleNames = labels.map((l) => l.textContent.trim());
+        const lines = ["Generá una interfaz de usuario usando esta paleta de colores:"];
+        let si = 0;
+        const groups = {};
+        cells.forEach((el) => {
+          const col = si % 7;
+          const name = roleNames[col] || "Color";
+          if (!groups[name]) groups[name] = [];
+          groups[name].push(el.textContent.trim());
+          si++;
+        });
+        for (const [name, colors] of Object.entries(groups)) {
+          if (name === "Base") continue;
+          lines.push(`- ${name}: ${colors.slice(0, 5).join(", ")}...`);
+        }
+        lines.push("\nUsá estos colores como variables CSS mapeadas a los roles del sistema de diseño. Creá un layout de página completo con header, hero, secciones y footer.");
+        showCode(lines.join("\n"), "");
+        return;
+      }
+    });
+
+    const secBtn = document.getElementById("sec-btn");
+    const secPanel = document.getElementById("sec-panel");
+    if (secBtn && secPanel) {
+      secBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        secPanel.classList.toggle("hidden");
+        secBtn.classList.toggle("open");
+      });
+      document.addEventListener("click", () => {
+        if (!secPanel.classList.contains("hidden")) {
+          secPanel.classList.add("hidden");
+          secBtn.classList.remove("open");
+        }
+      });
+      secPanel.addEventListener("click", (e) => {
+        const btn = e.target.closest(".sec-sug");
+        if (!btn) return;
+        const off = parseInt(btn.dataset.off);
+        const hex = new URLSearchParams(location.search).get("hex") || "ff0000";
+        location.search = "?hex=" + hex + "&s=" + off;
+      });
+    }
+
+    const left = document.querySelector(".pal-left");
+    const resizer = document.getElementById("resizer");
+    let rLeft = parseInt(localStorage.getItem("palLeftWidth")) || 30;
+    left.style.width = rLeft + "%";
+
+    resizer.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      resizer.classList.add("dragging");
+      const page = document.querySelector(".pal-page");
+      const startX = e.clientX;
+      const startW = rLeft;
+
+      function onMove(ev) {
+        const dx = ev.clientX - startX;
+        const pct = startW + (dx / page.offsetWidth) * 100;
+        rLeft = Math.max(15, Math.min(60, pct));
+        left.style.width = rLeft + "%";
+      }
+
+      function onUp() {
+        resizer.classList.remove("dragging");
+        localStorage.setItem("palLeftWidth", rLeft);
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
+    const btn = document.getElementById("dropdown-btn");
+    const panel = document.getElementById("dropdown-panel");
+    const arrow = btn.querySelector(".dropdown-arrow");
+
+    function openPanel() {
+      panel.classList.remove("hidden", "drawer-close");
+      panel.classList.add("drawer-open");
+      arrow.style.transform = "rotate(180deg)";
+    }
+
+    function closePanel() {
+      panel.classList.remove("drawer-open");
+      panel.classList.add("drawer-close");
+      arrow.style.transform = "";
+      setTimeout(() => {
+        panel.classList.add("hidden");
+        panel.classList.remove("drawer-close");
+      }, 150);
+    }
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (panel.classList.contains("hidden")) {
+        openPanel();
+      } else {
+        closePanel();
+      }
+    });
+
+    document.addEventListener("click", () => {
+      if (!panel.classList.contains("hidden")) closePanel();
+    });
+
+    panel.addEventListener("click", (e) => {
+      const opt = e.target.closest(".dropdown-option");
+      if (!opt || opt.classList.contains("active")) return;
+      const idx = parseInt(opt.dataset.idx);
+      panel.querySelectorAll(".dropdown-option").forEach((o) => o.classList.remove("active"));
+      opt.classList.add("active");
+      closePanel();
+      const tpl = TEMPLATES[idx];
+      document.getElementById("dropdown-title").textContent = tpl.name;
+      document.getElementById("dropdown-sub").textContent = tpl.subtitle;
+      localStorage.setItem("palTemplateIdx", idx);
+      renderPreview(idx, btn._roleColors, btn._suggestions);
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    const cell = e.target.closest(".p-cell");
+    if (!cell || cell.classList.contains("p-empty")) return;
+    const hex = cell.textContent.trim();
+    const parsed = parseHex(hex);
+    if (!parsed) return;
+    const hexFull = hex.startsWith("#") ? hex : "#" + hex;
+    navigator.clipboard.writeText(hexFull).catch(() => {});
+    const orig = cell.textContent;
+    cell.textContent = "Copiado!";
+    cell.style.fontSize = "0.55rem";
+    setTimeout(() => {
+      cell.textContent = orig;
+      cell.style.fontSize = "";
+    }, 600);
+  });
+</script>
+
+<style is:global>
+  .pal-page {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  .pal-left {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .resizer {
+    width: 4px;
+    cursor: col-resize;
+    flex-shrink: 0;
+    background: transparent;
+    position: relative;
+    z-index: 30;
+    transition: background 0.15s;
+  }
+  .resizer:hover,
+  .resizer.dragging {
+    background: rgba(99, 102, 241, 0.3);
+  }
+
+  .pal-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .preview-toolbar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(28, 28, 34, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    text-align: left;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s, border-color 0.2s;
+    min-width: 200px;
+    outline: none;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .dropdown-btn:hover {
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.45);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .dropdown-btn .dropdown-arrow {
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: transform 0.2s;
+  }
+  .dropdown-panel:not(.hidden) ~ .dropdown-btn .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+
+  #dropdown-title {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .dropdown-sub {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .dropdown-panel {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    z-index: 25;
+    background: rgba(28, 28, 34, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 320px;
+    transform-origin: bottom center;
+  }
+
+  .dropdown-panel.hidden {
+    display: none;
+  }
+
+  .drawer-open {
+    animation: drawerUp 0.2s ease-out forwards;
+  }
+
+  .drawer-close {
+    animation: drawerDown 0.15s ease-in forwards;
+  }
+
+  @keyframes drawerUp {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+  }
+
+  @keyframes drawerDown {
+    from {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px) scale(0.96);
+    }
+  }
+
+  .dropdown-option {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .dropdown-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .dropdown-option.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .dropdown-option.active .dropdown-sub {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .do-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .do-sub {
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.35);
+    line-height: 1.2;
+  }
+
+  .preview-frame {
+    flex: 1;
+    border: none;
+    width: 100%;
+    background: #fff;
+  }
+
+  #pal-root {
+    width: 100%;
+  }
+
+  .p-container {
+    padding: 4px;
+  }
+
+  .p-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .p-label {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.52rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 2px 4px;
+    text-align: left;
+  }
+  .p-label-e {
+    grid-column: 7;
+  }
+
+  .sec-section {
+    padding: 8px 4px 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 6px;
+    position: relative;
+  }
+
+  .sec-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+  }
+  .sec-btn:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .sec-btn.open {
+    border-color: rgba(99, 102, 241, 0.35);
+  }
+  .sec-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .sec-btn-label {
+    flex: 1;
+    font-weight: 500;
+  }
+  .sec-arrow {
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: transform 0.2s;
+  }
+  .sec-btn.open .sec-arrow {
+    transform: rotate(180deg);
+  }
+
+  .sec-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 4px;
+    right: 4px;
+    z-index: 20;
+    background: rgba(28, 28, 34, 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .sec-dropdown.hidden { display: none; }
+
+  .sec-sug {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.7rem;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.7);
+    transition: background 0.12s;
+  }
+  .sec-sug:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .sec-sug.active {
+    background: rgba(99, 102, 241, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .ss-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .ss-lbl {
+    line-height: 1.2;
+  }
+
+  .pal-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 4px 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  #color-input {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+    flex-shrink: 0;
+  }
+  #color-input::-webkit-color-swatch-wrapper { padding: 0; }
+  #color-input::-webkit-color-swatch { border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; }
+  #color-hex {
+    flex: 1;
+    min-width: 80px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #color-hex:focus { border-color: #6366f1; }
+  #generate-btn {
+    width: 100%;
+    margin-top: 6px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 8px;
+    padding: 0.55rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  #generate-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  .p-cell {
+    height: 42px;
+    border-radius: 5px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s;
+    padding: 3px 4px;
+    box-sizing: border-box;
+  }
+
+  .p-cell:hover {
+    transform: scale(1.08);
+    z-index: 2;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .p-empty {
+    background: rgba(255, 255, 255, 0.02) !important;
+    cursor: default;
+  }
+
+  .export-btn {
+    width: 100%;
+    margin-top: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.55rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .export-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .export-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    background: rgba(0, 0, 0, 0.35);
+    animation: overlayIn 0.15s ease;
+  }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .export-overlay.hidden { display: none; }
+
+  .export-modal {
+    background: rgba(24, 24, 30, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 28px 32px 32px;
+    min-width: 420px;
+    max-width: 560px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  .export-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .export-title {
+    flex: 1;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .export-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .export-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .export-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .export-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .export-opt:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-2px);
+  }
+  .export-opt-icon {
+    width: 28px;
+    height: 28px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .export-opt:hover .export-opt-icon {
+    color: rgba(255, 255, 255, 0.75);
+  }
+  .export-opt-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .export-opt-sub {
+    font-size: 0.62rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .export-back {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .export-back:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .export-back.hidden { display: none; }
+
+  .export-code {
+    margin-top: 4px;
+  }
+  .export-code.hidden { display: none; }
+  .export-code pre {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+    max-height: 300px;
+    overflow: auto;
+    margin: 0 0 12px;
+  }
+  .export-code pre code {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: pre;
+  }
+  .export-copy-btn {
+    width: 100%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 8px;
+    padding: 0.55rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .export-copy-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+  }
+
+  @media (max-width: 980px) {
+    .resizer { display: none; }
+    .pal-page {
+      flex-direction: column;
+    }
+    .pal-left {
+      flex: none !important;
+      width: 100% !important;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+    .pal-right {
+      border-left: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 500px;
+    }
+    .p-grid {
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .p-cell {
+      height: 36px;
+    }
+  }
+</style>

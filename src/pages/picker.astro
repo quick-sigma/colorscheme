@@ -1,0 +1,640 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Cuentagotas" backHref="/" nextHref="/pallete">
+  <div class="page">
+    <div class="left-col">
+      <div class="wheel-section">
+        <div id="wheel-container"></div>
+      </div>
+      <div class="sliders-section">
+        <div id="sliders-container" class="sliders-container"></div>
+        <div class="mode-row">
+          <button class="mode-btn active" data-mode="rgb">RGB</button>
+          <button class="mode-btn" data-mode="hsv">HSV</button>
+          <button class="mode-btn" data-mode="hsl">HSL</button>
+        </div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div class="preview-panel">
+        <div class="preview-swatch" id="preview-swatch"></div>
+        <div class="preview-info">
+          <div class="preview-row"><span class="preview-label">HEX</span><span class="preview-value" id="preview-hex">#ffffff</span></div>
+          <div class="preview-row"><span class="preview-label">RGB</span><span class="preview-value" id="preview-rgb">255, 255, 255</span></div>
+          <div class="preview-row"><span class="preview-label">HSV</span><span class="preview-value" id="preview-hsv">0°, 0%, 100%</span></div>
+          <div class="preview-row"><span class="preview-label">HSL</span><span class="preview-value" id="preview-hsl">0°, 0%, 100%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</BaseLayout>
+
+<script>
+  import iro from "@jaames/iro";
+
+  const SLIDER_CONFIG = {
+    rgb: [
+      { key: "r", label: "R", min: 0, max: 255, unit: "" },
+      { key: "g", label: "G", min: 0, max: 255, unit: "" },
+      { key: "b", label: "B", min: 0, max: 255, unit: "" },
+    ],
+    hsv: [
+      { key: "h", label: "H", min: 0, max: 360, unit: "°" },
+      { key: "s", label: "S", min: 0, max: 100, unit: "%" },
+      { key: "v", label: "V", min: 0, max: 100, unit: "%" },
+    ],
+    hsl: [
+      { key: "h", label: "H", min: 0, max: 360, unit: "°" },
+      { key: "s", label: "S", min: 0, max: 100, unit: "%" },
+      { key: "l", label: "L", min: 0, max: 100, unit: "%" },
+    ],
+  };
+
+  let currentMode = "rgb";
+  let updating = false;
+  const color = { r: 255, g: 0, b: 0 };
+  let picker;
+
+  function hex(r, g, b) {
+    return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  }
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    let h = 0, s = 0, v = mx;
+    const d = mx - mn;
+    s = mx === 0 ? 0 : d / mx;
+    if (mx !== mn) {
+      if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+      else if (mx === g) h = ((b - r) / d + 2) * 60;
+      else h = ((r - g) / d + 4) * 60;
+    }
+    return { h: Math.round(h), s: Math.round(s * 100), v: Math.round(v * 100) };
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    let h = 0, s = 0, l = (mx + mn) / 2;
+    const d = mx - mn;
+    if (d !== 0) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+      else if (mx === g) h = ((b - r) / d + 2) * 60;
+      else h = ((r - g) / d + 4) * 60;
+    }
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+
+  function hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; }
+    else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
+    return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+  }
+
+  function hslToRgb(h, s, l) {
+    s /= 100; l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; }
+    else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
+    return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+  }
+
+  function updatePaletteLink() {
+    const btn = document.getElementById("next-btn");
+    if (btn) {
+      btn.href = "/pallete?hex=" + hex(color.r, color.g, color.b).replace("#", "");
+    }
+  }
+
+  function setColor(r, g, b, source) {
+    color.r = Math.max(0, Math.min(255, Math.round(r)));
+    color.g = Math.max(0, Math.min(255, Math.round(g)));
+    color.b = Math.max(0, Math.min(255, Math.round(b)));
+
+    const h = hex(color.r, color.g, color.b);
+
+    if (source !== "iro" && picker) {
+      updating = true;
+      picker.color.hexString = h;
+      updating = false;
+    }
+
+    if (source !== "slider") updateSliders();
+    else updateSliderTracks();
+    updatePreview();
+    updatePaletteLink();
+  }
+
+  function updatePreview() {
+    const { r, g, b } = color;
+    const hx = hex(r, g, b);
+    const hsv = rgbToHsv(r, g, b);
+    const hsl = rgbToHsl(r, g, b);
+
+    document.getElementById("preview-swatch").style.backgroundColor = hx;
+    document.getElementById("preview-hex").textContent = hx.toUpperCase();
+    document.getElementById("preview-rgb").textContent = `${r}, ${g}, ${b}`;
+    document.getElementById("preview-hsv").textContent = `${hsv.h}°, ${hsv.s}%, ${hsv.v}%`;
+    document.getElementById("preview-hsl").textContent = `${hsl.h}°, ${hsl.s}%, ${hsl.l}%`;
+  }
+
+  function sliderGradients(mode, r, g, b) {
+    const hsv = rgbToHsv(r, g, b);
+    const hsl = rgbToHsl(r, g, b);
+    if (mode === "rgb") {
+      return [
+        `linear-gradient(to right, rgb(0,${g},${b}), rgb(255,${g},${b}))`,
+        `linear-gradient(to right, rgb(${r},0,${b}), rgb(${r},255,${b}))`,
+        `linear-gradient(to right, rgb(${r},${g},0), rgb(${r},${g},255))`,
+      ];
+    }
+    if (mode === "hsv") {
+      const { h, s, v } = hsv;
+      const gray = hsvToRgb(h, 0, v);
+      const sat = hsvToRgb(h, 100, v);
+      const dark = hsvToRgb(h, s, 0);
+      const light = hsvToRgb(h, s, 100);
+      return [
+        `linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))`,
+        `linear-gradient(to right, rgb(${gray.r},${gray.g},${gray.b}), rgb(${sat.r},${sat.g},${sat.b}))`,
+        `linear-gradient(to right, rgb(${dark.r},${dark.g},${dark.b}), rgb(${light.r},${light.g},${light.b}))`,
+      ];
+    }
+    const { h, s, l } = hsl;
+    const low = hslToRgb(h, s, 0);
+    const mid = hslToRgb(h, s, 50);
+    const high = hslToRgb(h, s, 100);
+    return [
+      `linear-gradient(to right, hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(360,100%,50%))`,
+      `linear-gradient(to right, hsl(${h},0%,${l}%), hsl(${h},100%,${l}%))`,
+      `linear-gradient(to right, rgb(${low.r},${low.g},${low.b}), rgb(${mid.r},${mid.g},${mid.b}), rgb(${high.r},${high.g},${high.b}))`,
+    ];
+  }
+
+  function updateSliderTracks() {
+    const grads = sliderGradients(currentMode, color.r, color.g, color.b);
+    document.querySelectorAll("#sliders-container .slider-track-bg").forEach((el, i) => {
+      if (grads[i]) el.style.background = grads[i];
+    });
+  }
+
+  function updateSliders() {
+    const cfg = SLIDER_CONFIG[currentMode];
+    const values = getSliderValues();
+
+    document.querySelectorAll("#sliders-container .slider-thumb").forEach((thumb, i) => {
+      const pct = ((values[i] - cfg[i].min) / (cfg[i].max - cfg[i].min)) * 100;
+      thumb.style.left = pct + "%";
+      const fill = document.getElementById("stf-" + i);
+      if (fill) fill.style.width = pct + "%";
+      const val = document.getElementById("stv-" + i);
+      if (val) val.textContent = Math.round(values[i]) + cfg[i].unit;
+    });
+    updateSliderTracks();
+  }
+
+  function buildSliders() {
+    const container = document.getElementById("sliders-container");
+    container.innerHTML = "";
+    const cfg = SLIDER_CONFIG[currentMode];
+
+    const vals = getSliderValues();
+
+    cfg.forEach((c, idx) => {
+      const group = document.createElement("div");
+      group.className = "slider-group";
+
+      const label = document.createElement("span");
+      label.className = "slider-label";
+      label.textContent = c.label;
+
+      const track = document.createElement("div");
+      track.className = "slider-track";
+
+      const bg = document.createElement("div");
+      bg.className = "slider-track-bg";
+      bg.id = "stb-" + idx;
+
+      const fill = document.createElement("div");
+      fill.className = "slider-track-fill";
+      fill.id = "stf-" + idx;
+
+      const thumb = document.createElement("div");
+      thumb.className = "slider-thumb";
+      thumb.id = "sth-" + idx;
+
+      const val = document.createElement("span");
+      val.className = "slider-val";
+      val.id = "stv-" + idx;
+      val.textContent = vals[idx] + c.unit;
+
+      track.appendChild(bg);
+      track.appendChild(fill);
+      track.appendChild(thumb);
+      group.appendChild(label);
+      group.appendChild(track);
+      group.appendChild(val);
+      container.appendChild(group);
+
+      let dragging = false;
+
+      function setPct(pct) {
+        pct = Math.max(0, Math.min(100, pct));
+        const raw = c.min + (pct / 100) * (c.max - c.min);
+        thumb.style.left = pct + "%";
+        fill.style.width = pct + "%";
+        val.textContent = Math.round(raw) + c.unit;
+
+        const allThumbs = container.querySelectorAll(".slider-thumb");
+        const allFills = container.querySelectorAll(".slider-track-fill");
+        const allVals = container.querySelectorAll(".slider-val");
+        const allThumbEls = Array.from(allThumbs);
+        const allValEls = Array.from(allVals);
+        const allFillEls = Array.from(allFills);
+
+        const trackVals = allThumbEls.map((t, i) => {
+          const p = parseFloat(t.style.left) || 0;
+          const cfgI = cfg[i];
+          return cfgI.min + (p / 100) * (cfgI.max - cfgI.min);
+        });
+
+        let nr, ng, nb;
+        if (currentMode === "rgb") {
+          nr = Math.round(trackVals[0]); ng = Math.round(trackVals[1]); nb = Math.round(trackVals[2]);
+        } else if (currentMode === "hsv") {
+          const rgb = hsvToRgb(Math.round(trackVals[0]), Math.round(trackVals[1]), Math.round(trackVals[2]));
+          nr = rgb.r; ng = rgb.g; nb = rgb.b;
+        } else {
+          const rgb = hslToRgb(Math.round(trackVals[0]), Math.round(trackVals[1]), Math.round(trackVals[2]));
+          nr = rgb.r; ng = rgb.g; nb = rgb.b;
+        }
+
+        setColor(nr, ng, nb, "slider");
+      }
+
+      function onPointer(e) {
+        const rect = track.getBoundingClientRect();
+        const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
+        const pct = (x / rect.width) * 100;
+        setPct(pct);
+      }
+
+      track.addEventListener("mousedown", (e) => {
+        dragging = true;
+        onPointer(e);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+
+      track.addEventListener("touchstart", (e) => {
+        dragging = true;
+        onPointer(e);
+        document.addEventListener("touchmove", onTouchMove);
+        document.addEventListener("touchend", onUp);
+      });
+
+      function onMove(e) { if (dragging) onPointer(e); }
+      function onTouchMove(e) { if (dragging) { e.preventDefault(); onPointer(e); } }
+      function onUp() {
+        dragging = false;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        document.removeEventListener("touchmove", onTouchMove);
+        document.removeEventListener("touchend", onUp);
+      }
+    });
+  }
+
+  function getSliderValues() {
+    const hsv = rgbToHsv(color.r, color.g, color.b);
+    const hsl = rgbToHsl(color.r, color.g, color.b);
+    if (currentMode === "rgb") return [color.r, color.g, color.b];
+    if (currentMode === "hsv") return [hsv.h, hsv.s, hsv.v];
+    return [hsl.h, hsl.s, hsl.l];
+  }
+
+  function switchMode(mode) {
+    currentMode = mode;
+    buildSliders();
+    updateSliders();
+    document.querySelectorAll(".mode-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+  }
+
+  function getWheelSize() {
+    const el = document.getElementById("wheel-container");
+    const r = el.getBoundingClientRect();
+    return Math.max(180, Math.floor(Math.min(r.width - 10, r.height - 10)));
+  }
+
+  function init() {
+    localStorage.setItem("palLastNav", "picker");
+
+    const size = getWheelSize();
+
+    picker = new iro.ColorPicker("#wheel-container", {
+      width: size,
+      color: "#ff0000",
+      borderWidth: 0,
+      handleRadius: 7,
+      padding: 4,
+      wheelLightness: true,
+      layout: [
+        { component: iro.ui.Wheel },
+        { component: iro.ui.Slider, options: { sliderType: "value" } },
+      ],
+      layoutDirection: "horizontal",
+    });
+
+    picker.on("color:change", (c) => {
+      if (updating) return;
+      const rgb = c.rgb;
+      setColor(rgb.r, rgb.g, rgb.b, "iro");
+    });
+
+    buildSliders();
+    setColor(255, 0, 0, "iro");
+
+    const ro = new ResizeObserver(() => {
+      const s = getWheelSize();
+      if (Math.abs(s - picker.width) > 5) {
+        picker.resize(s);
+      }
+    });
+    ro.observe(document.getElementById("wheel-container"));
+
+    document.querySelectorAll(".mode-btn").forEach((b) => {
+      b.addEventListener("click", () => switchMode(b.dataset.mode));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+
+<style>
+  .page {
+    flex: 1;
+    display: flex;
+    gap: 1.5rem;
+    min-height: 0;
+  }
+
+  .left-col {
+    flex: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .right-col {
+    flex: 3;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+  }
+
+  .preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    flex: 1;
+  }
+
+  /* --- Wheel Section --- */
+
+  .wheel-section {
+    flex: 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 0.5rem;
+    overflow: hidden;
+  }
+
+  #wheel-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* --- Mode Row --- */
+
+  .mode-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .mode-btn {
+    padding: 0.35rem 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.5);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mode-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .mode-btn.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+    color: #a5b4fc;
+  }
+
+  /* --- Sliders Section --- */
+
+  .sliders-section {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    min-height: 0;
+  }
+
+  .sliders-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 0;
+  }
+
+  /* --- Preview Panel --- */
+
+  .preview-swatch {
+    flex: 1;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    min-height: 120px;
+    transition: background 0.1s ease;
+  }
+
+  .preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .preview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .preview-value {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 800px) {
+    .page {
+      flex-direction: column;
+    }
+    .right-col {
+      flex: none;
+      height: 200px;
+    }
+    .preview-panel {
+      flex-direction: row;
+      align-items: center;
+    }
+    .preview-swatch {
+      min-height: 80px;
+      min-width: 80px;
+      flex: none;
+      width: 80px;
+    }
+  }
+</style>
+
+<style is:global>
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .slider-label {
+    width: 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .slider-track {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+    position: relative;
+    cursor: pointer;
+    min-width: 0;
+    margin: 0 12px;
+  }
+
+  .slider-track-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 5px;
+    pointer-events: none;
+  }
+
+  .slider-track-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 5px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .slider-track:hover .slider-thumb {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+
+  .slider-val {
+    width: 3.2rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+</style>

@@ -1,0 +1,719 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Extraer color" backHref="/" nextHref="/pallete">
+    <div id="drop-overlay">
+      <div class="drop-content">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <p>Suelta tus archivos aquí</p>
+      </div>
+    </div>
+
+    <div class="page">
+
+      <main id="main-content" class="hidden">
+        <div class="layout">
+          <div class="image-panel" id="image-panel">
+            <img id="preview" alt="Vista previa" />
+            <canvas id="source-canvas" class="hidden"></canvas>
+            <div id="crosshair" class="crosshair hidden"></div>
+          </div>
+
+          <div class="controls-panel">
+            <div class="section eyedropper-section">
+              <div class="section-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 22 16.5 7.5" />
+                  <path d="M21.5 7.5 17.5 3.5a2.12 2.12 0 0 0-3 0l-2.5 2.5" />
+                  <path d="m12.5 6.5 5 5" />
+                </svg>
+                <span>Cuentagotas</span>
+              </div>
+              <color-display id="eyedropper-display"></color-display>
+              <button class="action-btn" id="eyedropper-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 22 16.5 7.5" />
+                  <path d="M21.5 7.5 17.5 3.5a2.12 2.12 0 0 0-3 0l-2.5 2.5" />
+                  <path d="m12.5 6.5 5 5" />
+                </svg>
+                Seleccionar color de la imagen
+              </button>
+              <p class="hint">Haz clic en el botón y luego sobre la imagen</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section kmeans-section" id="kmeans-section">
+              <div class="section-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="20" height="14" x="2" y="3" rx="2" />
+                  <line x1="8" x2="16" y1="21" y2="21" />
+                  <line x1="12" x2="12" y1="17" y2="21" />
+                </svg>
+                <span>Color predominante</span>
+              </div>
+              <div id="kmeans-container">
+                <div class="lazy-placeholder">
+                  <div class="spinner"></div>
+                  <span>Procesando colores...</span>
+                </div>
+              </div>
+              <p class="hint">Color generado por KMeans</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <div id="empty-state" class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        </svg>
+        <p class="empty-title">Arrastra una imagen aquí</p>
+        <p class="empty-sub">o haz clic para seleccionar un archivo</p>
+        <input type="file" id="file-input" accept="image/*" class="hidden" />
+        <button class="select-btn" id="select-btn">Seleccionar archivo</button>
+      </div>
+    </div>
+
+    <script>
+      class ColorDisplay extends HTMLElement {
+        static observedAttributes = ["color"];
+
+        connectedCallback() {
+          this.render();
+          this.addEventListener("click", () => {
+            const color = this.getAttribute("color");
+            if (color && color !== "transparent") {
+              const target = document.getElementById("eyedropper-display");
+              if (target && target !== this) target.setAttribute("color", color);
+            }
+          });
+        }
+
+        attributeChangedCallback() {
+          this.render();
+        }
+
+        render() {
+          const color = this.getAttribute("color") || "";
+          const hasColor = color && color !== "transparent";
+          this.innerHTML = `
+            <div class="cd-swatch" style="background: ${hasColor ? color : "rgba(255,255,255,0.06)"}">
+              ${!hasColor ? '<span class="cd-placeholder">—</span>' : ""}
+            </div>
+            <div class="cd-hex">${hasColor ? color.toUpperCase() : "Ninguno"}</div>
+          `;
+        }
+      }
+      customElements.define("color-display", ColorDisplay);
+
+      (() => {
+        const dropOverlay = document.getElementById("drop-overlay");
+        const fileInput = document.getElementById("file-input");
+        const selectBtn = document.getElementById("select-btn");
+        const preview = document.getElementById("preview");
+        const sourceCanvas = document.getElementById("source-canvas");
+        const mainContent = document.getElementById("main-content");
+        const emptyState = document.getElementById("empty-state");
+        const imagePanel = document.getElementById("image-panel");
+        const eyedropperBtn = document.getElementById("eyedropper-btn");
+        const eyedropperDisplay = document.getElementById("eyedropper-display");
+        const crosshair = document.getElementById("crosshair");
+        const kmeansContainer = document.getElementById("kmeans-container");
+        const kmeansSection = document.getElementById("kmeans-section");
+        const nextBtn = document.getElementById("next-btn");
+
+        localStorage.setItem("palLastNav", "extractor");
+
+        if (nextBtn) nextBtn.classList.add("disabled");
+
+        function updatePaletteLink() {
+          const c = eyedropperDisplay.getAttribute("color");
+          if (c && c !== "transparent" && nextBtn) {
+            nextBtn.href = "/pallete?hex=" + c.replace("#", "");
+          }
+        }
+
+        const obs = new MutationObserver(() => {
+          const c = eyedropperDisplay.getAttribute("color");
+          if (c && c !== "transparent") {
+            nextBtn?.classList.remove("disabled");
+            updatePaletteLink();
+          }
+        });
+        obs.observe(eyedropperDisplay, { attributes: true, attributeFilter: ["color"] });
+
+        let imageLoaded = false;
+        let picking = false;
+
+        // --- Drag and drop ---
+
+        let dragCounter = 0;
+
+        document.addEventListener("dragenter", (e) => {
+          e.preventDefault();
+          dragCounter++;
+          dropOverlay.classList.add("active");
+        });
+
+        document.addEventListener("dragover", (e) => {
+          e.preventDefault();
+        });
+
+        document.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          dragCounter--;
+          if (dragCounter <= 0) {
+            dragCounter = 0;
+            dropOverlay.classList.remove("active");
+          }
+        });
+
+        document.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dragCounter = 0;
+          dropOverlay.classList.remove("active");
+          const file = e.dataTransfer.files[0];
+          if (file && file.type.startsWith("image/")) loadImage(file);
+        });
+
+        selectBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files[0]) loadImage(fileInput.files[0]);
+        });
+
+        emptyState.addEventListener("dragover", (e) => e.preventDefault());
+
+        // --- Load image ---
+
+        function loadImage(file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              preview.src = img.src;
+              sourceCanvas.width = img.naturalWidth;
+              sourceCanvas.height = img.naturalHeight;
+              const ctx = sourceCanvas.getContext("2d");
+              ctx.drawImage(img, 0, 0);
+
+              imageLoaded = true;
+              emptyState.classList.add("hidden");
+              mainContent.classList.remove("hidden");
+
+              lazyInitKMeans();
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+
+        // --- Eyedropper ---
+
+        eyedropperBtn.addEventListener("click", () => {
+          if (!imageLoaded) return;
+          picking = !picking;
+          eyedropperBtn.classList.toggle("active", picking);
+          crosshair.classList.toggle("hidden", !picking);
+        });
+
+        imagePanel.addEventListener("click", (e) => {
+          if (!picking || !imageLoaded) return;
+
+          const rect = imagePanel.getBoundingClientRect();
+          const imgRect = preview.getBoundingClientRect();
+
+          const x = Math.round((e.clientX - imgRect.left) * (preview.naturalWidth / imgRect.width));
+          const y = Math.round((e.clientY - imgRect.top) * (preview.naturalHeight / imgRect.height));
+
+          if (x < 0 || y < 0 || x >= sourceCanvas.width || y >= sourceCanvas.height) return;
+
+          const ctx = sourceCanvas.getContext("2d");
+          const pixel = ctx.getImageData(x, y, 1, 1).data;
+          const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+
+          eyedropperDisplay.setAttribute("color", hex);
+
+          picking = false;
+          eyedropperBtn.classList.remove("active");
+          crosshair.classList.add("hidden");
+        });
+
+        imagePanel.addEventListener("mousemove", (e) => {
+          if (!picking || !imageLoaded) return;
+          const rect = imagePanel.getBoundingClientRect();
+          crosshair.style.left = e.clientX - rect.left + "px";
+          crosshair.style.top = e.clientY - rect.top + "px";
+        });
+
+        imagePanel.addEventListener("mouseleave", () => {
+          crosshair.classList.add("hidden");
+        });
+
+        imagePanel.addEventListener("mouseenter", () => {
+          if (picking) crosshair.classList.remove("hidden");
+        });
+
+        // --- K-Means (lazy loaded) ---
+
+        let kmeansDone = false;
+
+        function lazyInitKMeans() {
+          if (kmeansDone) return;
+          const observer = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting && !kmeansDone) {
+                  kmeansDone = true;
+                  observer.disconnect();
+                  runKMeans();
+                }
+              });
+            },
+            { threshold: 0.1 }
+          );
+          observer.observe(kmeansSection);
+        }
+
+        function runKMeans() {
+          setTimeout(() => {
+            const ctx = sourceCanvas.getContext("2d");
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const pixels = samplePixels(imageData, 5000);
+            const clusters = kmeans(pixels, 5);
+            const dominant = clusters.sort((a, b) => b.count - a.count)[0];
+            const hex = rgbToHex(Math.round(dominant.centroid[0]), Math.round(dominant.centroid[1]), Math.round(dominant.centroid[2]));
+
+            renderDominantColor(hex);
+          }, 100);
+        }
+
+        function samplePixels(imageData, max) {
+          const data = imageData.data;
+          const total = data.length / 4;
+          const step = Math.max(1, Math.floor(total / max));
+          const pixels = [];
+          for (let i = 0; i < total; i += step) {
+            const idx = i * 4;
+            if (data[idx + 3] > 128) {
+              pixels.push([data[idx], data[idx + 1], data[idx + 2]]);
+            }
+          }
+          return pixels;
+        }
+
+        function kmeans(pixels, k, maxIter = 20) {
+          let centroids = [];
+          for (let i = 0; i < k; i++) {
+            centroids.push(pixels[Math.floor(Math.random() * pixels.length)]);
+          }
+
+          let assignments = new Array(pixels.length).fill(0);
+          for (let iter = 0; iter < maxIter; iter++) {
+            let changed = false;
+            for (let i = 0; i < pixels.length; i++) {
+              let minDist = Infinity;
+              let best = 0;
+              for (let j = 0; j < k; j++) {
+                const d = dist(pixels[i], centroids[j]);
+                if (d < minDist) {
+                  minDist = d;
+                  best = j;
+                }
+              }
+              if (assignments[i] !== best) {
+                assignments[i] = best;
+                changed = true;
+              }
+            }
+            if (!changed) break;
+
+            const sums = Array.from({ length: k }, () => [0, 0, 0]);
+            const counts = new Array(k).fill(0);
+            for (let i = 0; i < pixels.length; i++) {
+              const a = assignments[i];
+              sums[a][0] += pixels[i][0];
+              sums[a][1] += pixels[i][1];
+              sums[a][2] += pixels[i][2];
+              counts[a]++;
+            }
+            for (let j = 0; j < k; j++) {
+              if (counts[j] > 0) {
+                centroids[j] = [sums[j][0] / counts[j], sums[j][1] / counts[j], sums[j][2] / counts[j]];
+              }
+            }
+          }
+
+          const counts = new Array(k).fill(0);
+          for (let i = 0; i < pixels.length; i++) {
+            counts[assignments[i]]++;
+          }
+
+          return centroids.map((c, i) => ({ centroid: c, count: counts[i] }));
+        }
+
+        function dist(a, b) {
+          const dx = a[0] - b[0];
+          const dy = a[1] - b[1];
+          const dz = a[2] - b[2];
+          return dx * dx + dy * dy + dz * dz;
+        }
+
+        function renderDominantColor(hex) {
+          kmeansContainer.innerHTML = "";
+
+          const display = document.createElement("color-display");
+          display.setAttribute("color", hex);
+          display.style.cursor = "pointer";
+
+          display.addEventListener("click", () => {
+            eyedropperDisplay.setAttribute("color", hex);
+          });
+
+          kmeansContainer.appendChild(display);
+        }
+
+        // --- Utils ---
+
+        function rgbToHex(r, g, b) {
+          return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+        }
+      })();
+    </script>
+</BaseLayout>
+
+<style is:global>
+  color-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .cd-swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .cd-placeholder {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .cd-hex {
+    font-family: "Inter", monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+</style>
+
+<style>
+  .hidden {
+    display: none !important;
+  }
+
+  /* --- Drop overlay --- */
+
+  #drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 15, 17, 0.92);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  #drop-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .drop-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .drop-content svg {
+    opacity: 0.5;
+  }
+
+  /* --- Page layout --- */
+
+  .page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 1rem;
+    min-height: 0;
+  }
+
+  /* --- Empty state --- */
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: color 0.2s;
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state:hover {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .empty-icon {
+    opacity: 0.5;
+  }
+
+  .empty-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .empty-sub {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .select-btn {
+    margin-top: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .select-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* --- Main layout (70/30) --- */
+
+  #main-content {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .layout {
+    display: flex;
+    gap: 1.5rem;
+    height: 100%;
+  }
+
+  /* --- Image panel (70%) --- */
+
+  .image-panel {
+    flex: 7;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    min-height: 0;
+    cursor: crosshair;
+  }
+
+  .image-panel img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* --- Crosshair --- */
+
+  .crosshair {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+  }
+
+  .crosshair::before,
+  .crosshair::after {
+    content: "";
+    position: absolute;
+    background: #ffffff;
+  }
+
+  .crosshair::before {
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    opacity: 0.5;
+  }
+
+  .crosshair::after {
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    transform: translate(-50%, -50%);
+    opacity: 0.5;
+  }
+
+  /* --- Controls panel (30%) --- */
+
+  .controls-panel {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .section-header svg {
+    opacity: 0.6;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  /* --- Action button --- */
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .action-btn.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+    color: #a5b4fc;
+  }
+
+  .hint {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-align: center;
+  }
+
+  /* --- K-Means --- */
+
+  .kmeans-section {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .lazy-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+</style>
