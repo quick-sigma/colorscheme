@@ -17,6 +17,17 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
     <meta name="viewport" content="width=device-width" />
     <title>{pageTitle}</title>
 
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content="Color Scheme — Generador inteligente de paletas de color. Crea combinaciones armoniosas y previsualízalas en plantillas reales para ver cómo lucen antes de usarlas en tu proyecto." />
+    <meta property="og:image" content="/logo.avif" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content="Color Scheme — Generador inteligente de paletas de color. Crea combinaciones armoniosas y previsualízalas en plantillas reales para ver cómo lucen antes de usarlas en tu proyecto." />
+    <meta name="twitter:image" content="/logo.avif" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet" />
@@ -24,8 +35,8 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
   </head>
   <body>
     <div class="container">
-      <div class="header-row">
-        <div class="header-left">
+      <nav class="navbar">
+        <div class="nav-left">
           {backHref && (
             <a href={backHref} class="back-btn" aria-label="Volver">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -35,8 +46,11 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
             </a>
           )}
         </div>
-        <h1 class="title">Color Scheme</h1>
-        <div class="header-right">
+        <div class="nav-center">
+          <img src="/logo.avif" alt="Logo" class="nav-logo" />
+          <img src="/tipografia.avif" alt="Color Scheme" class="nav-typography" />
+        </div>
+        <div class="nav-right">
           {nextHref && (
             <a href={nextHref} class="next-btn" id="next-btn">
               Siguiente
@@ -46,7 +60,7 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
             </a>
           )}
         </div>
-      </div>
+      </nav>
       <div class="content">
         <slot />
       </div>
@@ -82,25 +96,41 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
     padding: 2.5rem 2rem 2rem;
   }
 
-  .header-row {
+  .navbar {
     display: flex;
     align-items: center;
     width: 100%;
     padding-top: 2rem;
   }
 
-  .header-left,
-  .header-right {
+  .nav-left,
+  .nav-right {
     flex: 1;
     display: flex;
   }
 
-  .header-left {
+  .nav-left {
     justify-content: flex-start;
   }
 
-  .header-right {
+  .nav-right {
     justify-content: flex-end;
+  }
+
+  .nav-center {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .nav-typography {
+    height: 2.5rem;
+    width: auto;
+  }
+
+  .nav-logo {
+    height: 2.5rem;
+    width: auto;
   }
 
   .back-btn {
@@ -118,17 +148,6 @@ const pageTitle = title === "Color Scheme" ? "Color Scheme" : `${title} - Color 
   .back-btn:hover {
     background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
-  }
-
-  .title {
-    font-family: "Lobster", cursive;
-    font-size: 4rem;
-    font-weight: 400;
-    color: #ffffff;
-    letter-spacing: 0.02em;
-    text-shadow: 0 2px 20px rgba(99, 102, 241, 0.3);
-    user-select: none;
-    flex-shrink: 0;
   }
 
   .content {

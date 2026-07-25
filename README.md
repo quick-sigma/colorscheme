@@ -1,43 +1,38 @@
-# Astro Starter Kit: Minimal
+# Color Scheme
+
+**Color Scheme** es un generador inteligente de paletas de color. Crea combinaciones armoniosas a partir de un color base y previsualízalas en plantillas reales para ver cómo lucen antes de usarlas en tu proyecto.
+
+## Características
+
+- **Entrada por rueda de color** — Seleccioná el color base visualmente.
+- **Extracción de color por imagen** — Subí una imagen y extraé su color dominante.
+- **Paleta completa automática** — A partir de un color, genera una paleta armoniosa completa.
+- **Color secundario configurable** — Elegí el color secundario que acompañe a la paleta.
+- **Colores semánticos** — Genera automáticamente colores para sombras, Info, Warning, Error y Success.
+- **Vista previa en plantillas** — Visualizá la paleta aplicada en distintas plantillas web (cards, formularios, botones, layouts, etc.).
+- **Exportación múltiple** — Exportá la paleta en los formatos que necesites:
+  - CSS
+  - Tailwind
+  - Prompt
+  - PNG (para usar con color picker)
+
+## Tecnologías
+
+- [Astro](https://astro.build)
+
+## Desarrollo
 
 ```sh
-pnpm create astro@latest -- --template minimal
+pnpm install
+pnpm dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+El servidor de desarrollo se inicia en `localhost:4321`.
 
-## 🚀 Project Structure
+## Build
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+pnpm build
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Genera los archivos estáticos en `dist/`.
